@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
+import { NavBar } from './components/NavBar';
 import {
   HomePage,
   LoginPage,
@@ -15,6 +16,7 @@ function App() {
   return (
     <BrowserRouter>
       <LanguageProvider>
+        <NavBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
