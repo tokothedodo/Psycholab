@@ -7,9 +7,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { ExperimentWrapper } from '../components/experiments/ExperimentWrapper';
+import { ExperimentWrapper } from './ExperimentWrapper';
 import type { Experiment } from '../data/experiments';
-import type { TrialData, ExperimentResults } from '../components/experiments/ExperimentWrapper';
+import type { TrialData, ExperimentResults } from './ExperimentWrapper';
 import { getDefaultConfig } from './config/experimentDefaults';
 
 interface StroopConfig {
@@ -54,7 +54,7 @@ const DEFAULT_CONFIG = {
 
 export function StroopExperiment({ experiment, onComplete, participantId, roomId, config = {} }: StroopProps) {
   const { t, language } = useLanguage();
-  
+
   const settings: StroopConfig = {
     ...DEFAULT_CONFIG,
     ...config,
@@ -80,12 +80,12 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
     const stimuli: { word: string; color: string; congruent: boolean }[] = [];
     const congruentCount = Math.round(settings.trials * settings.congruentRatio);
     const incongruentCount = settings.trials - congruentCount;
-    
+
     for (let i = 0; i < congruentCount; i++) {
       const color = availableColors[Math.floor(Math.random() * availableColors.length)];
       stimuli.push({ word: color.name, color: color.hex, congruent: true });
     }
-    
+
     for (let i = 0; i < incongruentCount; i++) {
       const wordColor = availableColors[Math.floor(Math.random() * availableColors.length)];
       let inkColor: typeof availableColors[0];
@@ -94,7 +94,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
       } while (inkColor.name === wordColor.name);
       stimuli.push({ word: wordColor.name, color: inkColor.hex, congruent: false });
     }
-    
+
     if (settings.randomizeOrder) {
       return stimuli.sort(() => Math.random() - 0.5);
     }
@@ -176,7 +176,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
 
     const endTime = performance.now();
     const responseTime = Math.round(endTime - trialStartTime);
-    
+
     const correctColorName = Object.keys(COLOR_MAP).find(
       key => COLOR_MAP[key].hex === currentStimulus.color
     ) || '';
@@ -198,8 +198,8 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
 
     const trial: TrialData = {
       trialNumber: trialIndex + 1,
-      responseTimeMs: responseTime === 0 && selectedColor === 'timeout' 
-        ? settings.responseTimeLimit 
+      responseTimeMs: responseTime === 0 && selectedColor === 'timeout'
+        ? settings.responseTimeLimit
         : responseTime,
       answer: selectedColor === 'timeout' ? 'timeout' : selectedColor,
       correctAnswer: correctColorName,
@@ -224,14 +224,14 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
     if (phase !== 'experiment' && phase !== 'practice') return;
     if (!currentStimulus || isWaiting) return;
     if (settings.inputMethod !== 'keyboard') return;
-    
+
     const keyMap: Record<string, string> = {
       'r': 'red', 'g': 'green', 'b': 'blue', 'y': 'yellow',
       'p': 'purple', 'o': 'orange',
       'R': 'red', 'G': 'green', 'B': 'blue', 'Y': 'yellow',
       'P': 'purple', 'O': 'orange',
     };
-    
+
     if (keyMap[e.key]) {
       handleResponse(keyMap[e.key]);
     }
@@ -257,22 +257,22 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
     setPhase('complete');
     const endTime = performance.now();
     const totalTime = Math.round(endTime - experimentStartTime);
-    
+
     let finalTrialData = trialData;
     if (settings.outlierRemoval) {
       finalTrialData = removeOutliers(trialData);
     }
-    
+
     const correctCount = finalTrialData.filter(t => t.answer === t.correctAnswer).length;
     const accuracy = finalTrialData.length > 0 ? (correctCount / finalTrialData.length) * 100 : 0;
-    
+
     const congruentTrials = finalTrialData.filter(t => (t.stimulus as { congruent?: boolean })?.congruent);
     const incongruentTrials = finalTrialData.filter(t => !(t.stimulus as { congruent?: boolean })?.congruent);
-    const congruentRT = congruentTrials.length > 0 
-      ? congruentTrials.reduce((s, t) => s + t.responseTimeMs, 0) / congruentTrials.length 
+    const congruentRT = congruentTrials.length > 0
+      ? congruentTrials.reduce((s, t) => s + t.responseTimeMs, 0) / congruentTrials.length
       : 0;
-    const incongruentRT = incongruentTrials.length > 0 
-      ? incongruentTrials.reduce((s, t) => s + t.responseTimeMs, 0) / incongruentTrials.length 
+    const incongruentRT = incongruentTrials.length > 0
+      ? incongruentTrials.reduce((s, t) => s + t.responseTimeMs, 0) / incongruentTrials.length
       : 0;
     const interference = incongruentRT - congruentRT;
 
@@ -297,23 +297,34 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
   if (phase === 'instruction') {
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-2xl mx-auto p-6">
-          <h2 className="text-2xl font-bold text-navy-900 mb-4">{t('exp.stroop.name')}</h2>
-          <p className="text-gray-600 mb-4">
-            {settings.customInstructions || t('exp.stroop.instruction')}
-          </p>
-          <p className="text-sm text-gray-500 mb-4">{t('exp.stroop.keys')}</p>
-          <div className="flex gap-4 mb-6">
-            {availableColors.map(c => (
-              <div key={c.name} className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded" style={{ backgroundColor: c.hex }} />
-                <span className="font-mono uppercase">{c.name[0]}</span>
-              </div>
-            ))}
+        <div className="max-w-2xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 mb-4">{t('exp.stroop.name')}</h2>
+          <div className="bg-slate-50 border-l-4 border-teal-500 p-5 rounded-r-lg mb-6">
+            <p className="text-slate-700 leading-relaxed text-lg">
+              {settings.customInstructions || t('exp.stroop.instruction')}
+            </p>
           </div>
-          <p className="text-xs text-gray-400 mb-4">
-            {settings.trials} trials | {settings.practiceTrials} practice | ISI: {settings.isi}ms
-          </p>
+
+          <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mb-8">
+            <p className="text-sm font-semibold text-indigo-900 mb-3">{t('exp.stroop.keys')}</p>
+            <div className="flex flex-wrap gap-4">
+              {availableColors.map(c => (
+                <div key={c.name} className="flex items-center gap-3 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-100">
+                  <div className="w-6 h-6 rounded-full shadow-inner" style={{ backgroundColor: c.hex }} />
+                  <span className="font-mono text-slate-600 font-bold uppercase">{c.name[0]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-medium text-slate-400 mb-8 bg-slate-50 py-3 px-4 rounded-lg">
+            <span className="flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>{settings.trials} trials</span>
+            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+            <span className="flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>{settings.practiceTrials} practice</span>
+            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+            <span className="flex items-center gap-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ISI: {settings.isi}ms</span>
+          </div>
+
           <button
             onClick={() => {
               if (settings.practiceTrials > 0) {
@@ -326,9 +337,10 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
                 setCurrentStimulus(allStimuli[0]);
               }
             }}
-            className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
+            className="group relative w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold flex tracking-wide items-center justify-center gap-3 px-8 py-4 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
           >
             {t('common.start')}
+            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
       </ExperimentWrapper>
@@ -347,7 +359,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
       <ExperimentWrapper experiment={experiment}>
         <div className="max-w-2xl mx-auto p-6">
           <h2 className="text-2xl font-bold text-navy-900 mb-4">{t('common.debrief.title')}</h2>
-          
+
           <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-4">
             <p className="text-teal-800 font-medium">{t('common.debrief.thankYou')}</p>
           </div>
@@ -387,7 +399,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
         {settings.showProgressBar && (
           <div className="mb-6">
             <div className="h-2 bg-gray-200 rounded overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-teal-600 transition-all"
                 style={{ width: `${((trialIndex + 1) / totalTrials) * 100}%` }}
               />
@@ -410,7 +422,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
           {currentStimulusData && (
             <span
               className="font-bold"
-              style={{ 
+              style={{
                 color: currentStimulusData.color,
                 fontSize: `${settings.fontSize}px`,
               }}
@@ -421,7 +433,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
         </div>
 
         <p className="text-center text-gray-600 mb-4">{t('exp.stroop.selectColor')}</p>
-        
+
         {settings.inputMethod === 'click' ? (
           <div className="flex justify-center gap-3">
             {availableColors.map((color) => (

@@ -1,0 +1,4 @@
+# Terminal Rules
+1. Send terminal output to a file somewhere that won't be uploaded to GitHub (e.g., `/tmp/output.txt`).
+2. Do work based on reading that file.
+3. Kill terminal processes which are no longer used as you go to avoid hanging commands.

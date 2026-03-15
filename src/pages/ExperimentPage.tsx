@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getExperimentById, type Experiment } from '../data/experiments';
 import { saveResult } from '../lib/supabase';
-import { 
-  StroopExperiment, 
-  MullerLyerExperiment, 
+import {
+  StroopExperiment,
+  MullerLyerExperiment,
   DigitSpanExperiment,
   ReactionTimeExperiment,
   PonzoExperiment,
@@ -43,7 +43,7 @@ import {
   MotionAftereffectExperiment,
   HollowFaceExperiment,
 } from '../experiments';
-import type { ExperimentResults } from '../components/experiments/ExperimentWrapper';
+import type { ExperimentResults } from '../experiments/ExperimentWrapper';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   experiment: Experiment;
@@ -96,10 +96,7 @@ const PLACEHOLDER_EXPERIMENTS: Record<string, React.ComponentType<{
   onComplete: (results: ExperimentResults) => void;
   participantId: string;
   roomId: string;
-}>> = {
-  'motion-aftereffect': MullerLyerExperiment,
-  'hollow-face': MullerLyerExperiment,
-};
+}>> = {};
 
 export function ExperimentPage() {
   const { id } = useParams<{ id: string }>();

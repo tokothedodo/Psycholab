@@ -11,9 +11,9 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { ExperimentWrapper } from '../components/experiments/ExperimentWrapper';
+import { ExperimentWrapper } from './ExperimentWrapper';
 import type { Experiment } from '../data/experiments';
-import type { TrialData, ExperimentResults } from '../components/experiments/ExperimentWrapper';
+import type { TrialData, ExperimentResults } from './ExperimentWrapper';
 
 // IMPORT YOUR CONFIG VARIABLES HERE
 // import { getDefaultConfig, getExperimentVariables } from './config';

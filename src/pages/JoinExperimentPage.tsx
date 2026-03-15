@@ -10,7 +10,7 @@ import {
   UltimatumExperiment,
   DigitSpanExperiment,
   PonzoExperiment,
-} from '../components/experiments';
+} from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   onComplete: (result: {
@@ -32,7 +32,7 @@ export function JoinExperimentPage() {
   const { code } = useParams<{ code: string }>();
   const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
-  
+
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
