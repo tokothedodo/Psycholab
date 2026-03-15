@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getRoomByCode, saveResult, type Room } from '../lib/supabase';
 import type { Language } from '../types';
+import type { ExperimentResults } from '../experiments/ExperimentWrapper';
+import type { Experiment } from '../data/experiments';
+import { getExperimentById } from '../data/experiments';
 import {
   MullerLyerExperiment,
   StroopExperiment,
@@ -13,12 +16,10 @@ import {
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
-  onComplete: (result: {
-    experiment_name: string;
-    response_time_ms: number;
-    answer: string | number;
-    correct_answer: string | number;
-  }) => void;
+  experiment: Experiment;
+  onComplete: (results: ExperimentResults) => void;
+  participantId: string;
+  roomId: string;
 }>> = {
   'muller-lyer': MullerLyerExperiment,
   'stroop': StroopExperiment,
@@ -68,24 +69,19 @@ export function JoinExperimentPage() {
     }
   };
 
-  const handleExperimentComplete = async (result: {
-    experiment_name: string;
-    response_time_ms: number;
-    answer: string | number;
-    correct_answer: string | number;
-  }) => {
+  const handleExperimentComplete = async (results: ExperimentResults) => {
     if (!room) return;
 
     try {
       await saveResult({
         room_id: room.id,
         participant_id: participantId,
-        experiment_name: result.experiment_name,
-        response_time_ms: result.response_time_ms,
-        answer: String(result.answer),
-        correct_answer: String(result.correct_answer),
+        experiment_name: results.experimentName,
+        response_time_ms: results.responseTimeMs,
+        answer: String(results.answer),
+        correct_answer: String(results.correctAnswer),
         language,
-        timestamp: new Date().toISOString(),
+        timestamp: results.timestamp,
       });
     } catch (error) {
       console.error('Error saving result:', error);
@@ -185,8 +181,17 @@ export function JoinExperimentPage() {
     );
   }
 
-  const currentExperiment = room!.experiments[currentExperimentIndex];
-  const ExperimentComponent = EXPERIMENT_COMPONENTS[currentExperiment];
+  const currentExperimentId = room!.experiments[currentExperimentIndex];
+  const currentExperiment = getExperimentById(currentExperimentId);
+  const ExperimentComponent = currentExperimentId && EXPERIMENT_COMPONENTS[currentExperimentId];
+
+  if (!currentExperiment || !ExperimentComponent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Experiment not found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -215,9 +220,12 @@ export function JoinExperimentPage() {
       </header>
 
       <main className="py-8">
-        {ExperimentComponent && (
-          <ExperimentComponent onComplete={handleExperimentComplete} />
-        )}
+        <ExperimentComponent
+          experiment={currentExperiment}
+          onComplete={handleExperimentComplete}
+          participantId={participantId}
+          roomId={room!.id}
+        />
       </main>
     </div>
   );

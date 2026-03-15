@@ -9,7 +9,7 @@
  * @version 1.0.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ExperimentWrapper } from './ExperimentWrapper';
 import type { Experiment } from '../data/experiments';
@@ -23,18 +23,8 @@ import type { TrialData, ExperimentResults } from './ExperimentWrapper';
  * These will be merged with universal variables by the config system
  */
 interface YourExperimentConfig {
-  // Universal variables (provided automatically):
-  // trials: number
-  // isi: number
-  // stimulusDuration: number
-  // responseTimeLimit: number
-  // showFeedback: boolean
-  // showProgressBar: boolean
-  // customInstructions: string
-  // randomizeOrder: boolean
-  // practiceTrials: number
-  // outlierRemoval: boolean
-  // outlierThreshold: number
+  customInstructions: string;
+  practiceTrials: number;
   
   // Add your experiment-specific variables here:
   // exampleSetting: number;
@@ -63,13 +53,13 @@ interface YourExperimentProps {
  */
 export function YourExperiment({
   experiment,
-  onComplete,
-  participantId,
-  roomId,
+  onComplete: _onComplete,
+  participantId: _participantId,
+  roomId: _roomId,
   config = {},
 }: YourExperimentProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   
   // Merge config with defaults
   const settings: YourExperimentConfig = {
@@ -87,13 +77,13 @@ export function YourExperiment({
   
   // Trial state - these will be used in real implementations
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [trialIndex, setTrialIndex] = useState(0);
+  const [, _setTrialIndex] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [trialData, setTrialData] = useState<TrialData[]>([]);
+  const [_trialData, _setTrialData] = useState<TrialData[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [experimentStartTime, setExperimentStartTime] = useState(0);
+  const [_experimentStartTime, _setExperimentStartTime] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [trialStartTime, setTrialStartTime] = useState(0);
+  const [_trialStartTime, _setTrialStartTime] = useState(0);
 
   // ============================================
   // YOUR EXPERIMENT-SPECIFIC STATE HERE
@@ -120,11 +110,11 @@ export function YourExperiment({
   // ============================================
   
   // Start experiment timer
-  useEffect(() => {
-    if (phase === 'experiment' || phase === 'practice') {
-      setExperimentStartTime(performance.now());
-    }
-  }, [phase]);
+  // useEffect(() => {
+  //   if (phase === 'experiment' || phase === 'practice') {
+  //     _setExperimentStartTime(performance.now());
+  //   }
+  // }, [phase]);
 
   // Handle response time limit
   // useEffect(() => {
@@ -249,7 +239,7 @@ export function YourExperiment({
               setPhase('practice');
             } else {
               setPhase('experiment');
-              setTrialStartTime(performance.now());
+              // _setTrialStartTime(performance.now());
             }
           }}
           className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
