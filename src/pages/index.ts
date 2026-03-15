@@ -1,0 +1,8 @@
+export { HomePage } from './HomePage';
+export { LoginPage } from './LoginPage';
+export { SignupPage } from './SignupPage';
+export { DashboardPage } from './DashboardPage';
+export { RoomBuilderPage } from './RoomBuilderPage';
+export { JoinExperimentPage } from './JoinExperimentPage';
+export { ExperimentCatalogPage } from './ExperimentCatalogPage';
+export { ExperimentPage } from './ExperimentPage';
