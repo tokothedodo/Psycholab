@@ -28,7 +28,7 @@ interface ZollnerProps {
   config?: Partial<ZollnerConfig>;
 }
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('zollner'), trials: 12 } as ZollnerConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('zollner-illusion'), trials: 12 } as ZollnerConfig;
 
 export function ZollnerExperiment({ experiment, onComplete, participantId, roomId, config = {} }: ZollnerProps) {
   const { t, language } = useLanguage();

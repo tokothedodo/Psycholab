@@ -48,7 +48,7 @@ const SCENARIOS: Scenario[] = [
 ];
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('bystander'),
+  ...getDefaultConfig('bystander-intervention-paradigm'),
   trials: 6,
 } as BystanderConfig;
 

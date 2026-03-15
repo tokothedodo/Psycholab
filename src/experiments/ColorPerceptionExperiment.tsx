@@ -34,7 +34,7 @@ const COLOR_BANDS = [
   { hue: 240, colors: ['#0000ff', '#3333ff', '#6666ff', '#9999ff', '#ccccff', '#ccccff', '#9999ff', '#6666ff', '#3333ff', '#0000ff'] },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('color-perception'), trials: 60 } as ColorPerceptionConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('color-category-perception-paradigm'), trials: 60 } as ColorPerceptionConfig;
 
 export function ColorPerceptionExperiment({ experiment, onComplete, participantId, roomId, config = {} }: ColorPerceptionProps) {
   const { t, language } = useLanguage();

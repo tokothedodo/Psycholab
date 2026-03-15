@@ -44,7 +44,7 @@ interface Trial {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('ebbinghaus'),
+  ...getDefaultConfig('ebbinghaus-illusion'),
   centerSize: 40,
   inducerSize: 'small',
   trials: 16,

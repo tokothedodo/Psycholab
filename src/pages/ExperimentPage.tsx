@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getExperimentById, type Experiment } from '../data/experiments';
-import { saveResult } from '../lib/supabase';
+import { useResults } from '../hooks/useResults';
 import {
   StroopExperiment,
   MullerLyerExperiment,
@@ -51,44 +51,44 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   participantId: string;
   roomId: string;
 }>> = {
-  'stroop': StroopExperiment,
-  'muller-lyer': MullerLyerExperiment,
-  'digit-span': DigitSpanExperiment,
-  'reaction-time': ReactionTimeExperiment,
-  'ponzo': PonzoExperiment,
-  'anchoring': AnchoringExperiment,
-  'trolley': TrolleyExperiment,
-  'dictator': DictatorExperiment,
-  'change-blindness': ChangeBlindnessExperiment,
-  'jnd': JNDExperiment,
-  'ebbinghaus': EbbinghausExperiment,
-  'kanizsa': KanizsaExperiment,
-  'ultimatum': UltimatumExperiment,
-  'inattentional': InattentionalExperiment,
-  'serial-position': SerialPositionExperiment,
-  'sternberg': SternbergExperiment,
-  'drm': DRMExperiment,
-  'framing': FramingExperiment,
-  'bystander': BystanderExperiment,
-  'loss-aversion': LossAversionExperiment,
-  'trust': TrustExperiment,
-  'rubin-vase': RubinVaseExperiment,
-  'zollner': ZollnerExperiment,
-  'availability': AvailabilityExperiment,
-  'wason': WasonExperiment,
-  'linda': LindaExperiment,
-  'hindsight': HindsightExperiment,
-  'sunk-cost': SunkCostExperiment,
-  'iowa-gambling': IowaGamblingExperiment,
-  'prisoners-dilemma': PrisonersDilemmaExperiment,
-  'asch': AschExperiment,
-  'iat': IATExperiment,
-  'false-consensus': FalseConsensusExperiment,
-  'mcgurk': McGurkExperiment,
-  'rubber-hand': RubberHandExperiment,
-  'color-perception': ColorPerceptionExperiment,
-  'motion-aftereffect': MotionAftereffectExperiment,
-  'hollow-face': HollowFaceExperiment,
+  'stroop-color-word-interference-task': StroopExperiment,
+  'muller-lyer-illusion': MullerLyerExperiment,
+  'digit-span-task': DigitSpanExperiment,
+  'simple-and-choice-reaction-time-task': ReactionTimeExperiment,
+  'ponzo-illusion': PonzoExperiment,
+  'anchoring-and-adjustment-heuristic-task': AnchoringExperiment,
+  'trolley-problem-paradigm': TrolleyExperiment,
+  'dictator-game': DictatorExperiment,
+  'change-detection-flicker-paradigm': ChangeBlindnessExperiment,
+  'difference-threshold-staircase-paradigm': JNDExperiment,
+  'ebbinghaus-illusion': EbbinghausExperiment,
+  'kanizsa-illusory-contour-paradigm': KanizsaExperiment,
+  'ultimatum-game': UltimatumExperiment,
+  'inattentional-blindness-paradigm': InattentionalExperiment,
+  'serial-position-effect-paradigm': SerialPositionExperiment,
+  'sternberg-memory-scanning-task': SternbergExperiment,
+  'deese-roediger-mcdermott-false-memory-paradigm': DRMExperiment,
+  'attribute-framing-effect-paradigm': FramingExperiment,
+  'bystander-intervention-paradigm': BystanderExperiment,
+  'loss-aversion-task': LossAversionExperiment,
+  'investment-game': TrustExperiment,
+  'rubin-figure-ground-paradigm': RubinVaseExperiment,
+  'zollner-illusion': ZollnerExperiment,
+  'availability-heuristic-judgment-task': AvailabilityExperiment,
+  'wason-selection-task': WasonExperiment,
+  'conjunction-fallacy-paradigm': LindaExperiment,
+  'hindsight-bias-paradigm': HindsightExperiment,
+  'sunk-cost-effect-paradigm': SunkCostExperiment,
+  'iowa-gambling-task': IowaGamblingExperiment,
+  'iterated-prisoners-dilemma': PrisonersDilemmaExperiment,
+  'asch-conformity-paradigm': AschExperiment,
+  'implicit-association-test': IATExperiment,
+  'false-consensus-effect-paradigm': FalseConsensusExperiment,
+  'mcgurk-effect': McGurkExperiment,
+  'rubber-hand-illusion': RubberHandExperiment,
+  'color-category-perception-paradigm': ColorPerceptionExperiment,
+  'motion-aftereffect-paradigm': MotionAftereffectExperiment,
+  'hollow-face-illusion': HollowFaceExperiment,
 };
 
 const PLACEHOLDER_EXPERIMENTS: Record<string, React.ComponentType<{
@@ -101,11 +101,12 @@ const PLACEHOLDER_EXPERIMENTS: Record<string, React.ComponentType<{
 export function ExperimentPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [loading, setLoading] = useState(true);
   const [participantId] = useState(() => `P_${Math.random().toString(36).substr(2, 9)}`);
   const [roomId] = useState(() => `R_${Math.random().toString(36).substr(2, 6)}`);
+  const { submitResults, error, setError } = useResults();
 
   useEffect(() => {
     if (id) {
@@ -118,20 +119,7 @@ export function ExperimentPage() {
   }, [id]);
 
   const handleComplete = async (results: ExperimentResults) => {
-    try {
-      await saveResult({
-        room_id: roomId,
-        participant_id: participantId,
-        experiment_name: results.experimentName,
-        response_time_ms: results.responseTimeMs,
-        answer: String(results.answer),
-        correct_answer: String(results.correctAnswer),
-        language,
-        timestamp: results.timestamp,
-      });
-    } catch (error) {
-      console.error('Error saving result:', error);
-    }
+    await submitResults(results);
   };
 
   if (loading) {
@@ -177,11 +165,21 @@ export function ExperimentPage() {
   }
 
   return (
-    <ExperimentComponent
-      experiment={experiment}
-      onComplete={handleComplete}
-      participantId={participantId}
-      roomId={roomId}
-    />
+    <>
+      {error && (
+        <div className="bg-error/10 text-error p-4 text-center border-b border-error/20 flex justify-center items-center gap-4">
+          <p>{t('common.error')}: {error}</p>
+          <button onClick={() => setError(null)} className="underline font-medium text-sm">
+            {t('common.dismiss') || 'Dismiss'}
+          </button>
+        </div>
+      )}
+      <ExperimentComponent
+        experiment={experiment}
+        onComplete={handleComplete}
+        participantId={participantId}
+        roomId={roomId}
+      />
+    </>
   );
 }

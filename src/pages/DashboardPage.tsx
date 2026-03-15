@@ -46,7 +46,7 @@ export function DashboardPage() {
     try {
       const roomsData = await getRooms(userId);
       setRooms(roomsData);
-      
+
       const stats: Record<string, { participants: number; results: number }> = {};
       for (const room of roomsData) {
         const participants = await getUniqueParticipants(room.id);
@@ -76,11 +76,11 @@ export function DashboardPage() {
   const handleExportCSV = async (room: Room) => {
     try {
       const results = await getResults(room.id);
-      
+
       const csvContent = [
-        'participant_id,language,experiment_name,response_time_ms,answer,correct_answer,timestamp',
+        'participant_id,language,experiment_name,response_time_ms,answer,correct_answer,timestamp,trial_data',
         ...results.map((r: Result) =>
-          `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.answer},${r.correct_answer},${r.timestamp}`
+          `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},"${String(r.answer).replace(/"/g, '""')}","${String(r.correct_answer).replace(/"/g, '""')}",${r.timestamp},"${r.trial_data ? JSON.stringify(r.trial_data).replace(/"/g, '""') : ''}"`
         ),
       ].join('\n');
 
@@ -113,22 +113,22 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-navy-900 text-white py-4">
-        <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
+    <div className="min-h-screen bg-surface flex flex-col">
+      <header className="bg-primary text-white py-4 border-b border-navy-800">
+        <div className="academic-container flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-bold">{t('dashboard.title')}</h1>
+            <h2 className="mb-0 text-white leading-none">{t('dashboard.title')}</h2>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <button
               onClick={() => setShowAI(!showAI)}
-              className="bg-teal-600 px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors"
+              className="btn-secondary"
             >
               AI Assistant
             </button>
             <button
               onClick={handleLogout}
-              className="text-white hover:text-gray-200"
+              className="text-white hover:text-gray-200 transition-colors"
             >
               {t('nav.logout')}
             </button>
@@ -136,7 +136,7 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="academic-container py-8 flex-1">
         {showAI && (
           <div className="mb-8">
             <AIAssistant currentExperiments={[]} />
@@ -144,19 +144,17 @@ export function DashboardPage() {
         )}
 
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-navy-900">
-            {t('dashboard.createNewRoom')}
-          </h2>
+          <h2 className="mb-0">{t('dashboard.createNewRoom')}</h2>
           <button
             onClick={() => navigate('/create-room')}
-            className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors font-semibold"
+            className="btn-primary"
           >
             + {t('dashboard.createRoom')}
           </button>
         </div>
 
         {rooms.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl">
+          <div className="text-center py-12 bg-white border border-border rounded">
             <p className="text-gray-500">{t('dashboard.noRooms')}</p>
           </div>
         ) : (
@@ -218,21 +216,21 @@ function RoomCard({ room, stats, onClose, onExport, t }: RoomCardProps) {
   const isActive = room.status === 'open';
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+    <div className="bg-white rounded p-6 border border-border">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h4 className="text-lg font-semibold text-navy-900">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="mb-0">
               {(room as Room & { title?: string }).title || `Room ${room.code}`}
-            </h4>
+            </h3>
             {isActive && (
-              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+              <span className="bg-success/10 text-success text-xs px-2 py-1 rounded">
                 {t('dashboard.live')}
               </span>
             )}
           </div>
-          <p className="text-gray-500 text-sm">
-            {t('dashboard.roomCode')}: <span className="font-mono font-bold text-navy-900">{room.code}</span>
+          <p className="text-text-secondary text-sm">
+            {t('dashboard.roomCode')}: <span className="font-mono font-bold text-text-primary">{room.code}</span>
           </p>
         </div>
         <span className={`text-sm ${isActive ? 'text-green-600' : 'text-gray-500'}`}>
@@ -269,14 +267,14 @@ function RoomCard({ room, stats, onClose, onExport, t }: RoomCardProps) {
       <div className="flex gap-2">
         <button
           onClick={onExport}
-          className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          className="flex-1 btn-outline"
         >
           {t('dashboard.exportCSV')}
         </button>
         {isActive && onClose && (
           <button
             onClick={onClose}
-            className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+            className="flex-1 bg-surface border border-error/20 text-error py-2 rounded hover:bg-error/5 transition-colors text-sm font-medium"
           >
             {t('dashboard.closeRoom')}
           </button>

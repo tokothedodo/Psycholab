@@ -25,7 +25,7 @@ interface RubberHandProps {
   config?: Partial<RubberHandConfig>;
 }
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('rubber-hand'), trials: 6 } as RubberHandConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('rubber-hand-illusion'), trials: 6 } as RubberHandConfig;
 
 export function RubberHandExperiment({ experiment, onComplete, participantId, roomId, config = {} }: RubberHandProps) {
   const { t, language } = useLanguage();

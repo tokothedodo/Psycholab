@@ -44,7 +44,7 @@ interface Recipient {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('dictator'),
+  ...getDefaultConfig('dictator-game'),
   totalAmount: 100,
   showPartnerInfo: true,
   trials: 3,

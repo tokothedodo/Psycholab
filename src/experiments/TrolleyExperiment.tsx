@@ -44,7 +44,7 @@ interface TrolleyScenario {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('trolley'),
+  ...getDefaultConfig('trolley-problem-paradigm'),
   trials: 4,
 } as TrolleyConfig;
 

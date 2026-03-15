@@ -30,13 +30,13 @@ export interface Result {
   timestamp: string;
 }
 
-export type ExperimentType = 
-  | 'muller-lyer'
-  | 'stroop'
-  | 'anchoring'
-  | 'ultimatum'
-  | 'digit-span'
-  | 'ponzo';
+export type ExperimentType =
+  | 'muller-lyer-illusion'
+  | 'stroop-color-word-interference-task'
+  | 'anchoring-and-adjustment-heuristic-task'
+  | 'ultimatum-game'
+  | 'digit-span-task'
+  | 'ponzo-illusion';
 
 export interface ExperimentConfig {
   type: ExperimentType;

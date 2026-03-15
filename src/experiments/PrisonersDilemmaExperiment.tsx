@@ -26,7 +26,7 @@ interface PrisonersDilemmaProps {
   config?: Partial<PrisonersDilemmaConfig>;
 }
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('prisoners-dilemma'), trials: 20 } as PrisonersDilemmaConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('iterated-prisoners-dilemma'), trials: 20 } as PrisonersDilemmaConfig;
 
 export function PrisonersDilemmaExperiment({ experiment, onComplete, participantId, roomId, config = {} }: PrisonersDilemmaProps) {
   const { t, language } = useLanguage();

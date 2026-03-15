@@ -31,7 +31,7 @@ export function SignupPage() {
 
     try {
       const data = await signUp(email, password);
-      
+
       if (data.user) {
         navigate('/dashboard');
       }
@@ -44,11 +44,11 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-navy-900 text-center mb-6">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded border border-border p-8">
+        <h2 className="text-center mb-6">
           {t('signup.title')}
-        </h1>
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -59,7 +59,7 @@ export function SignupPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+              className="w-full p-3 border border-border text-base rounded focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               required
             />
           </div>
@@ -72,7 +72,7 @@ export function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+              className="w-full p-3 border border-border text-base rounded focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               required
             />
           </div>
@@ -85,7 +85,7 @@ export function SignupPage() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+              className="w-full p-3 border border-border text-base rounded focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               required
             />
           </div>
@@ -99,15 +99,15 @@ export function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 font-semibold"
+            className="w-full btn-primary disabled:opacity-50"
           >
             {loading ? t('common.loading') : t('signup.submit')}
           </button>
         </form>
 
-        <p className="text-center mt-4 text-gray-600">
+        <p className="text-center mt-6 text-text-secondary text-sm">
           {t('signup.hasAccount')}{' '}
-          <Link to="/login" className="text-teal-600 hover:underline">
+          <Link to="/login" className="text-secondary hover:text-teal-700 font-medium hover:underline transition-colors">
             {t('nav.login')}
           </Link>
         </p>

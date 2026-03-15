@@ -87,100 +87,102 @@ export const translations: Translations = {
     'experiment.ponzo.instruction': 'Look at the two horizontal bars. Which one is longer? Click on the bar that appears longer to you.',
     'experiment.ponzo.question': 'Which bar is longer?',
     'experiment.ponzo.debrief': 'The Ponzo illusion demonstrates how depth cues influence size perception. The converging lines create an impression of depth, making the upper bar appear larger even though both bars are identical. This illustrates how the brain uses contextual information to interpret visual scenes.',
-    
+
     // Catalog
     'catalog.title': 'Experiment Library',
     'catalog.subtitle': '38 scientifically validated experiments',
     'catalog.experiments': 'experiments',
-    
+
     // Categories
-    'cat.visual': 'Visual Illusions',
-    'cat.cognitive': 'Cognitive Biases',
-    'cat.decision': 'Decision Making',
-    'cat.memory': 'Memory & Attention',
-    'cat.social': 'Social Psychology',
-    'cat.perception': 'Perception',
-    
+    'cat.perceptionPsychophysics': 'Perception and Psychophysics',
+    'cat.attention': 'Attention',
+    'cat.memoryLearning': 'Memory and Learning',
+    'cat.cognitiveProcesses': 'Cognitive Processes',
+    'cat.judgmentDecisionMaking': 'Judgment and Decision Making',
+    'cat.behavioralEconomics': 'Behavioral Economics and Game Theory',
+    'cat.socialCognition': 'Social Cognition',
+    'cat.moralPsychology': 'Moral Psychology',
+
     // Experiment names
     'exp.mullerLyer.name': 'Müller-Lyer Illusion',
     'exp.ponzo.name': 'Ponzo Illusion',
     'exp.ebbinghaus.name': 'Ebbinghaus Illusion',
-    'exp.kanizsa.name': 'Kanizsa Triangle',
-    'exp.rubinVase.name': 'Rubin Vase',
+    'exp.kanizsa.name': 'Kanizsa Illusory Contour Paradigm',
+    'exp.rubinVase.name': 'Rubin Figure-Ground Paradigm',
     'exp.zollner.name': 'Zöllner Illusion',
-    'exp.motionAftereffect.name': 'Motion Aftereffect',
-    'exp.hollowFace.name': 'Hollow Face',
-    'exp.stroop.name': 'Stroop Test',
-    'exp.anchoring.name': 'Anchoring Bias',
-    'exp.availability.name': 'Availability Heuristic',
+    'exp.motionAftereffect.name': 'Motion Aftereffect Paradigm',
+    'exp.hollowFace.name': 'Hollow-Face Illusion',
+    'exp.stroop.name': 'Stroop Color-Word Interference Task',
+    'exp.anchoring.name': 'Anchoring and Adjustment Heuristic Task',
+    'exp.availability.name': 'Availability Heuristic Judgment Task',
     'exp.wason.name': 'Wason Selection Task',
-    'exp.framing.name': 'Framing Effect',
-    'exp.linda.name': 'Linda Problem',
-    'exp.hindsight.name': 'Hindsight Bias',
-    'exp.sunkCost.name': 'Sunk Cost Fallacy',
+    'exp.framing.name': 'Attribute Framing Effect Paradigm',
+    'exp.linda.name': 'Conjunction Fallacy Paradigm',
+    'exp.hindsight.name': 'Hindsight Bias Paradigm',
+    'exp.sunkCost.name': 'Sunk Cost Effect Paradigm',
     'exp.ultimatum.name': 'Ultimatum Game',
     'exp.dictator.name': 'Dictator Game',
-    'exp.trust.name': 'Trust Game',
-    'exp.lossAversion.name': 'Loss Aversion',
+    'exp.trust.name': 'Investment Game',
+    'exp.lossAversion.name': 'Loss Aversion Task',
     'exp.iowaGambling.name': 'Iowa Gambling Task',
-    'exp.prisonersDilemma.name': "Prisoner's Dilemma",
-    'exp.digitSpan.name': 'Digit Span',
-    'exp.changeBlindness.name': 'Change Blindness',
-    'exp.inattentional.name': 'Inattentional Blindness',
-    'exp.serialPosition.name': 'Serial Position Effect',
-    'exp.sternberg.name': 'Sternberg Paradigm',
-    'exp.drm.name': 'DRM False Memory',
-    'exp.trolley.name': 'Trolley Problem',
-    'exp.asch.name': 'Asch Conformity',
+    'exp.prisonersDilemma.name': "Iterated Prisoner's Dilemma",
+    'exp.digitSpan.name': 'Digit Span Task',
+    'exp.changeBlindness.name': 'Change Detection Flicker Paradigm',
+    'exp.inattentional.name': 'Inattentional Blindness Paradigm',
+    'exp.serialPosition.name': 'Serial Position Effect Paradigm',
+    'exp.sternberg.name': 'Sternberg Memory Scanning Task',
+    'exp.drm.name': 'Deese-Roediger-McDermott (DRM) False Memory Paradigm',
+    'exp.trolley.name': 'Trolley Problem Paradigm',
+    'exp.asch.name': 'Asch Conformity Paradigm',
     'exp.iat.name': 'Implicit Association Test',
-    'exp.bystander.name': 'Bystander Effect',
-    'exp.falseConsensus.name': 'False Consensus',
-    'exp.reactionTime.name': 'Reaction Time',
-    'exp.jnd.name': 'Just Noticeable Difference',
+    'exp.bystander.name': 'Bystander Intervention Paradigm',
+    'exp.falseConsensus.name': 'False Consensus Effect Paradigm',
+    'exp.reactionTime.name': 'Simple and Choice Reaction Time Task',
+    'exp.jnd.name': 'Difference Threshold Staircase Paradigm',
     'exp.mcgurk.name': 'McGurk Effect',
     'exp.rubberHand.name': 'Rubber Hand Illusion',
-    'exp.colorPerception.name': 'Color Perception',
-    
+    'exp.colorPerception.name': 'Color Category Perception Paradigm',
+
     // Experiment descriptions
-    'exp.mullerLyer.desc': 'Test perception of line length with arrow fins',
-    'exp.ponzo.desc': 'Test depth perception with converging lines',
-    'exp.ebbinghaus.desc': 'Test size perception with surrounding circles',
-    'exp.kanizsa.desc': 'Test illusory contour formation',
-    'exp.rubinVase.desc': 'Test figure-ground perception',
-    'exp.zollner.desc': 'Test line parallelism perception',
-    'exp.motionAftereffect.desc': 'Test adaptation to motion stimuli',
-    'exp.hollowFace.desc': 'Test depth inversion perception',
-    'exp.stroop.desc': 'Test cognitive interference and selective attention',
-    'exp.anchoring.desc': 'Test numerical estimation with anchors',
-    'exp.availability.desc': 'Test frequency estimation based on recall',
-    'exp.wason.desc': 'Test logical reasoning and confirmation bias',
-    'exp.framing.desc': 'Test decision making with gain/loss frames',
-    'exp.linda.desc': 'Test conjunction fallacy in probability',
-    'exp.hindsight.desc': 'Test outcome knowledge distortion',
-    'exp.sunkCost.desc': 'Test irrational commitment to losing ventures',
-    'exp.ultimatum.desc': 'Test fairness preferences in bargaining',
-    'exp.dictator.desc': 'Test altruism and resource allocation',
-    'exp.trust.desc': 'Test trust and reciprocity',
-    'exp.lossAversion.desc': 'Test asymmetric weighting of gains vs losses',
-    'exp.iowaGambling.desc': 'Test reward/punishment learning',
-    'exp.prisonersDilemma.desc': 'Test cooperation vs defection strategies',
-    'exp.digitSpan.desc': 'Test working memory capacity',
-    'exp.changeBlindness.desc': 'Test visual attention and change detection',
-    'exp.inattentional.desc': 'Test attention allocation and unexpected stimuli',
-    'exp.serialPosition.desc': 'Test memory for item position in list',
-    'exp.sternberg.desc': 'Test memory search time complexity',
-    'exp.drm.desc': 'Test false recognition of semantic lures',
-    'exp.trolley.desc': 'Test utilitarian vs deontological moral judgments',
-    'exp.asch.desc': 'Test social pressure and conformity',
-    'exp.iat.desc': 'Measure automatic associations via response time',
-    'exp.bystander.desc': 'Test intervention likelihood with bystanders',
-    'exp.falseConsensus.desc': 'Test overestimation of agreement with others',
-    'exp.reactionTime.desc': 'Measure simple and choice reaction time',
-    'exp.jnd.desc': 'Test perceptual threshold using staircase method',
-    'exp.mcgurk.desc': 'Test audiovisual speech perception integration',
-    'exp.rubberHand.desc': 'Test body ownership and proprioception',
-    'exp.colorPerception.desc': 'Test color category boundaries across languages',
-    
+    'exp.mullerLyer.desc': 'Measure misperception of line length induced by arrow-fin configurations',
+    'exp.ponzo.desc': 'Measure size misperception induced by linear perspective cues',
+    'exp.ebbinghaus.desc': 'Measure size misperception induced by surrounding context circles',
+    'exp.kanizsa.desc': 'Measure illusory contour formation and modal completion',
+    'exp.rubinVase.desc': 'Measure bistable figure-ground segregation',
+    'exp.zollner.desc': 'Measure orientation misperception from intersecting line patterns',
+    'exp.motionAftereffect.desc': 'Measure illusory motion perception following adaptation',
+    'exp.hollowFace.desc': 'Measure depth inversion driven by top-down face priors',
+    'exp.stroop.desc': 'Measure cognitive interference between automatic word reading and color naming',
+    'exp.anchoring.desc': 'Measure systematic bias in numeric estimation from arbitrary anchor values',
+    'exp.availability.desc': 'Measure frequency estimation bias based on ease of mental retrieval',
+    'exp.wason.desc': 'Measure conditional reasoning and confirmation bias in logical inference',
+    'exp.framing.desc': 'Measure preference reversal between gain and loss decision frames',
+    'exp.linda.desc': 'Measure violation of the conjunction rule in probability judgment',
+    'exp.hindsight.desc': 'Measure distortion of recalled predictions after learning outcomes',
+    'exp.sunkCost.desc': 'Measure escalation of commitment due to prior investment',
+    'exp.ultimatum.desc': 'Measure fairness preferences and altruistic punishment in bargaining',
+    'exp.dictator.desc': 'Measure prosocial preferences in unilateral resource allocation',
+    'exp.trust.desc': 'Measure trust and reciprocity in sequential economic interaction',
+    'exp.lossAversion.desc': 'Measure asymmetric weighting of gains versus losses in mixed gambles',
+    'exp.iowaGambling.desc': 'Measure affective decision making and reward/punishment learning',
+    'exp.prisonersDilemma.desc': 'Measure cooperation and defection strategies across repeated interactions',
+    'exp.digitSpan.desc': 'Measure working memory capacity via sequential digit recall',
+    'exp.changeBlindness.desc': 'Measure change detection failure when visual transients are disrupted',
+    'exp.inattentional.desc': 'Measure failure to detect unexpected stimuli during focused attention',
+    'exp.serialPosition.desc': 'Measure primacy and recency effects in free recall',
+    'exp.sternberg.desc': 'Measure short-term memory scanning speed as a function of set size',
+    'exp.drm.desc': 'Measure false recognition of semantically associated lure words',
+    'exp.trolley.desc': 'Measure utilitarian versus deontological moral judgment in sacrifice dilemmas',
+    'exp.asch.desc': 'Measure conformity to unanimous majority in unambiguous perceptual judgments',
+    'exp.iat.desc': 'Measure automatic associations between concept categories via response latency',
+    'exp.bystander.desc': 'Measure diffusion of responsibility and intervention likelihood',
+    'exp.falseConsensus.desc': 'Measure overestimation of agreement with one\'s own attitudes',
+    'exp.reactionTime.desc': 'Compare simple and choice reaction time to isolate decision stages',
+    'exp.jnd.desc': 'Measure perceptual difference threshold using adaptive staircase method',
+    'exp.mcgurk.desc': 'Demonstrate audiovisual integration in speech perception',
+    'exp.rubberHand.desc': 'Measure body ownership transfer via multisensory integration',
+    'exp.colorPerception.desc': 'Measure categorical perception of color across linguistic boundaries',
+
     // Stroop additional
     'exp.stroop.keys': 'Press R (red), G (green), B (blue), or Y (yellow)',
     'exp.stroop.keyboard': 'Or use keyboard: R, G, B, Y',
@@ -189,12 +191,12 @@ export const translations: Translations = {
     'exp.stroop.incongruent': 'Incongruent',
     'exp.stroop.interference': 'Stroop Interference',
     'exp.stroop.interpretation': 'Higher values indicate greater difficulty ignoring the word when naming the color.',
-    
+
     // Digit span additional
     'exp.digitSpan.trial': 'Trial',
     'exp.digitSpan.was': 'Correct answer was',
     'exp.digitSpan.maxSpan': 'Maximum span',
-    
+
     // Reaction time
     'exp.reactionTime.simple': 'Simple RT',
     'exp.reactionTime.choice': 'Choice RT',
@@ -204,7 +206,7 @@ export const translations: Translations = {
     'exp.reactionTime.wait': 'Wait for the stimulus...',
     'exp.reactionTime.decision': 'Decision Time (Choice - Simple)',
     'exp.reactionTime.debrief': 'Reaction time is a fundamental measure in cognitive psychology. The difference between choice and simple reaction time represents the time needed for decision-making processes.',
-    
+
     // Colors
     'color.red': 'Red',
     'color.blue': 'Blue',
@@ -233,7 +235,7 @@ export const translations: Translations = {
     'participant.joined': 'You have joined the experiment room',
     'participant.completed': 'Experiment completed!',
     'participant.thankYou': 'Thank you for your participation!',
-    
+
     // Config Panel
     'config.trials': 'Number of trials',
     'config.isi': 'Inter-stimulus interval',
@@ -248,7 +250,7 @@ export const translations: Translations = {
     'config.practiceTrials': 'Practice trials before experiment',
     'config.outlierRemoval': 'Auto-remove outlier trials',
     'config.outlierThreshold': 'Outlier threshold (SD)',
-    
+
     // Stroop Config
     'config.stroop.congruentRatio': 'Congruent trial ratio',
     'config.stroop.colors': 'Colors used',
@@ -256,14 +258,14 @@ export const translations: Translations = {
     'config.stroop.inputMethod': 'Response method',
     'config.stroop.keyboard': 'Keyboard',
     'config.stroop.clickButtons': 'Click buttons',
-    
+
     // Müller-Lyer Config
     'config.mullerLyer.lineLengthMin': 'Minimum line length',
     'config.mullerLyer.lineLengthMax': 'Maximum line length',
     'config.mullerLyer.finAngle': 'Fin angle',
     'config.mullerLyer.finLength': 'Fin length',
     'config.mullerLyer.includeCatchTrials': 'Include catch trials',
-    
+
     // Digit Span Config
     'config.digitSpan.startingSpan': 'Starting span length',
     'config.digitSpan.stimulusType': 'Stimulus type',
@@ -275,7 +277,7 @@ export const translations: Translations = {
     'config.digitSpan.backward': 'Backward',
     'config.digitSpan.both': 'Both',
     'config.digitSpan.digitDisplayDuration': 'Each item display duration',
-    
+
     // Reaction Time Config
     'config.reactionTime.stimulusType': 'Stimulus type',
     'config.reactionTime.dot': 'Dot',
@@ -288,7 +290,7 @@ export const translations: Translations = {
     'config.reactionTime.both': 'Both',
     'config.reactionTime.foreperiodMin': 'Minimum foreperiod',
     'config.reactionTime.foreperiodMax': 'Maximum foreperiod',
-    
+
     // Anchoring Config
     'config.anchoring.anchorType': 'Anchor type',
     'config.anchoring.highOnly': 'High only',
@@ -302,7 +304,7 @@ export const translations: Translations = {
     'config.anchoring.dates': 'Historical dates',
     'config.anchoring.percentages': 'Percentages',
     'config.anchoring.anchorVisibleDuration': 'Anchor display duration',
-    
+
     // Ultimatum Config
     'config.ultimatum.totalCoins': 'Total coins to split',
     'config.ultimatum.rounds': 'Number of rounds',
@@ -311,11 +313,11 @@ export const translations: Translations = {
     'config.ultimatum.fair': 'Fair (50/50)',
     'config.ultimatum.unfair': 'Unfair (20/80)',
     'config.ultimatum.adaptive': 'Adaptive',
-    
+
     // Iowa Gambling Config
     'config.iowa.totalTrials': 'Total trials',
     'config.iowa.deckVisibility': 'Show deck labels',
-    
+
     // Color Perception Config
     'config.colorPerception.colorBoundaries': 'Color boundaries to test',
     'config.colorPerception.blueGreen': 'Blue-Green',
@@ -325,7 +327,7 @@ export const translations: Translations = {
     'config.colorPerception.pinkRed': 'Pink-Red',
     'config.colorPerception.patchSize': 'Color patch size',
     'config.colorPerception.labelsVisible': 'Show color name labels',
-    
+
     // Serial Position Config
     'config.serialPosition.listLength': 'Word list length',
     'config.serialPosition.presentationRate': 'Word presentation rate',
@@ -333,7 +335,7 @@ export const translations: Translations = {
     'config.serialPosition.freeRecall': 'Free recall',
     'config.serialPosition.cuedRecall': 'Cued recall',
     'config.serialPosition.recognition': 'Recognition',
-    
+
     // DRM Config
     'config.drm.listLength': 'Words per list',
     'config.drm.numberOfLists': 'Number of word lists',
@@ -421,7 +423,7 @@ export const translations: Translations = {
     'experiment.ponzo.instruction': 'დაუკავშირეთ თვალი ორ ჰორიზონტალურ ზოლს. რომელია უფრო გრძელი?',
     'experiment.ponzo.question': 'რომელი ზოლია უფრო გრძელი?',
     'experiment.ponzo.debrief': 'პონცოს ილუზია აჩვენებს, თუ როგორ მოქმედებს სიღრმის მინიშნებები ზომის აღქმაზე.',
-    
+
     // Experiment names - Georgian
     'exp.mullerLyer.name': 'მიულერ-ლაიერის ილუზია',
     'exp.ponzo.name': 'პონცოს ილუზია',
@@ -461,20 +463,22 @@ export const translations: Translations = {
     'exp.mcgurk.name': 'მაკგურკის ეფექტი',
     'exp.rubberHand.name': 'რეზინის ხელის ილუზია',
     'exp.colorPerception.name': 'ფერის აღქმა',
-    
+
     // Categories - Georgian
-    'cat.visual': 'ვიზუალური ილუზიები',
-    'cat.cognitive': 'კოგნიტიური ცრუ რწმენები',
-    'cat.decision': 'გადაწყვეტილების მიღება',
-    'cat.memory': 'მეხსიერება და ყურადღება',
-    'cat.social': 'სოციალური ფსიქოლოგია',
-    'cat.perception': 'აღქმა',
-    
+    'cat.perceptionPsychophysics': 'აღქმა და ფსიქოფიზიკა',
+    'cat.attention': 'ყურადღება',
+    'cat.memoryLearning': 'მეხსიერება და სწავლა',
+    'cat.cognitiveProcesses': 'კოგნიტიური პროცესები',
+    'cat.judgmentDecisionMaking': 'შეფასება და გადაწყვეტილების მიღება',
+    'cat.behavioralEconomics': 'ქცევითი ეკონომიკა და თამაშთა თეორია',
+    'cat.socialCognition': 'სოციალური შემეცნება',
+    'cat.moralPsychology': 'მორალური ფსიქოლოგია',
+
     // Catalog - Georgian
     'catalog.title': 'ექსპერიმენტების ბიბლიოთეკა',
     'catalog.subtitle': '38 სამეცნიეროდ ვალიდირებული ექსპერიმენტი',
     'catalog.experiments': 'ექსპერიმენტი',
-    
+
     'common.start': 'დაწყება',
     'common.next': 'შემდეგი',
     'common.submit': 'გაგზავნა',

@@ -34,7 +34,7 @@ const STIMULI = [
   { audio: 'ba', visual: 'ba', fused: 'ba', congruent: true },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('mcgurk'), trials: 20 } as McGurkConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('mcgurk-effect'), trials: 20 } as McGurkConfig;
 
 export function McGurkExperiment({ experiment, onComplete, participantId, roomId, config = {} }: McGurkProps) {
   const { t, language } = useLanguage();

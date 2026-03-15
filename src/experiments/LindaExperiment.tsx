@@ -25,7 +25,7 @@ interface LindaProps {
   config?: Partial<LindaConfig>;
 }
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('linda'), trials: 1 } as LindaConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('conjunction-fallacy-paradigm'), trials: 1 } as LindaConfig;
 
 export function LindaExperiment({ experiment, onComplete, participantId, roomId, config = {} }: LindaProps) {
   const { t, language } = useLanguage();

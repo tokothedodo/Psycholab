@@ -37,7 +37,7 @@ interface UltimatumProps {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('ultimatum'),
+  ...getDefaultConfig('ultimatum-game'),
   totalAmount: 100,
   minOffer: 5,
   trials: 10,

@@ -36,7 +36,7 @@ const QUESTIONS = [
   { id: 'lightning', question: 'lightning_deaths', actual: 50, keyword: 'lightning' },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('availability'), trials: 6 } as AvailabilityConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('availability-heuristic-judgment-task'), trials: 6 } as AvailabilityConfig;
 
 export function AvailabilityExperiment({ experiment, onComplete, participantId, roomId, config = {} }: AvailabilityProps) {
   const { t, language } = useLanguage();

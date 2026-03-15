@@ -40,7 +40,7 @@ interface Trial {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('kanizsa'),
+  ...getDefaultConfig('kanizsa-illusory-contour-paradigm'),
   trials: 12,
 } as KanizsaConfig;
 

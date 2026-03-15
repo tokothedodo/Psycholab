@@ -34,7 +34,7 @@ const QUESTIONS = [
   { id: 'early', question: 'early_estimate', yourAnswer: 'morning' },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('false-consensus'), trials: 8 } as FalseConsensusConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('false-consensus-effect-paradigm'), trials: 8 } as FalseConsensusConfig;
 
 export function FalseConsensusExperiment({ experiment, onComplete, participantId, roomId, config = {} }: FalseConsensusProps) {
   const { t, language } = useLanguage();

@@ -30,7 +30,7 @@ interface RubinVaseProps {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('rubin-vase'),
+  ...getDefaultConfig('rubin-figure-ground-paradigm'),
   trials: 10,
 } as RubinVaseConfig;
 

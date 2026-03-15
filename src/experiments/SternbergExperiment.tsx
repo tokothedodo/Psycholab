@@ -1,253 +1,200 @@
-/**
- * STERNBERG MEMORY SCANNING - Memory Experiment
- * 
- * Tests memory search time complexity.
- * Participants determine if a probe is in a remembered set.
- */
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ExperimentWrapper } from './ExperimentWrapper';
+import { useExperiment } from '../hooks/useExperiment';
+import { useTimer } from '../hooks/useTimer';
+import { useResponseCapture } from '../hooks/useResponseCapture';
+import { fisherYatesShuffle } from '../lib/random';
 import type { Experiment } from '../data/experiments';
-import type { TrialData, ExperimentResults } from './ExperimentWrapper';
-import { getDefaultConfig } from './config/experimentDefaults';
-
-interface SternbergConfig {
-  trials: number;
-  isi: number;
-  stimulusDuration: number;
-  responseTimeLimit: number;
-  showFeedback: boolean;
-  showProgressBar: boolean;
-  customInstructions: string;
-  randomizeOrder: boolean;
-  practiceTrials: number;
-  outlierRemoval: boolean;
-  outlierThreshold: number;
-  setSizes: number[];
-}
 
 interface SternbergProps {
   experiment: Experiment;
-  onComplete: (results: ExperimentResults) => void;
+  onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
-  config?: Partial<SternbergConfig>;
 }
 
-interface Trial {
+const SET_SIZES = [2, 4, 6, 8];
+const TOTAL_TRIALS = 60; // 15 trials per set size
+
+interface TrialConfig {
   memorySet: number[];
   probe: number;
   isPresent: boolean;
   setSize: number;
 }
 
-const DEFAULT_CONFIG = {
-  ...getDefaultConfig('sternberg'),
-  setSizes: [2, 4, 6, 8],
-  trials: 60,
-} as SternbergConfig;
-
-export function SternbergExperiment({ experiment, onComplete, participantId, roomId, config = {} }: SternbergProps) {
+export function SternbergExperiment({ experiment, onComplete, participantId, roomId }: SternbergProps) {
   const { t, language } = useLanguage();
 
-  const settings: SternbergConfig = {
-    ...DEFAULT_CONFIG,
-    ...config,
-  };
+  const [stimuli, setStimuli] = useState<TrialConfig[]>([]);
+  const [currentTrial, setCurrentTrial] = useState<TrialConfig | null>(null);
 
-  const [phase, setPhase] = useState<'instruction' | 'memory' | 'probe' | 'complete'>('instruction');
-  const [trialIndex, setTrialIndex] = useState(0);
-  const [trialData, setTrialData] = useState<TrialData[]>([]);
-  const [experimentStartTime, setExperimentStartTime] = useState(0);
-  const [trialStartTime, setTrialStartTime] = useState(0);
-  const [currentTrial, setCurrentTrial] = useState<Trial | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
+  const {
+    phase,
+    setPhase,
+    trialIndex,
+    trialData,
+    recordTrial,
+    advanceTrial,
+    finishExperiment,
+  } = useExperiment({ experiment, participantId, roomId, language, onComplete });
 
-  const generateStimuli = useCallback((): Trial[] => {
-    const stimuli: Trial[] = [];
-    const trialsPerSetSize = Math.floor(settings.trials / settings.setSizes.length);
+  const { startTimer, getResponseTime, clearTimer } = useTimer();
+  const sequenceTimeout = useRef<number | null>(null);
 
-    settings.setSizes.forEach(setSize => {
-      for (let i = 0; i < trialsPerSetSize; i++) {
-        const memorySet: number[] = [];
-        while (memorySet.length < setSize) {
-          const num = Math.floor(Math.random() * 9) + 1;
-          if (!memorySet.includes(num)) memorySet.push(num);
-        }
+  useEffect(() => {
+    // Generate stimuli: 60 trials total -> 15 per set size
+    const trialsPerSize = Math.floor(TOTAL_TRIALS / SET_SIZES.length);
+    let generated: TrialConfig[] = [];
 
-        const isPresent = Math.random() > 0.5;
+    SET_SIZES.forEach(size => {
+      for (let i = 0; i < trialsPerSize; i++) {
+        // Generate random digits 1-9 without replacement
+        const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        const shuffled = fisherYatesShuffle(digits);
+        const memorySet = shuffled.slice(0, size);
+
+        // 50% chance present or absent
+        const isPresent = i % 2 === 0;
         let probe: number;
+
         if (isPresent) {
           probe = memorySet[Math.floor(Math.random() * memorySet.length)];
         } else {
-          do {
-            probe = Math.floor(Math.random() * 9) + 1;
-          } while (memorySet.includes(probe));
+          const remaining = digits.filter(d => !memorySet.includes(d));
+          probe = remaining[Math.floor(Math.random() * remaining.length)];
         }
 
-        stimuli.push({ memorySet, probe, isPresent, setSize });
+        generated.push({ memorySet, probe, isPresent, setSize: size });
       }
     });
 
-    if (settings.randomizeOrder) {
-      return stimuli.sort(() => Math.random() - 0.5);
-    }
-    return stimuli;
-  }, [settings.trials, settings.setSizes, settings.randomizeOrder]);
+    setStimuli(fisherYatesShuffle(generated));
+  }, []);
 
-  const [allStimuli] = useState(generateStimuli);
-  const [practiceStimuli] = useState<Trial[]>([
-    { memorySet: [1, 2, 3], probe: 2, isPresent: true, setSize: 3 },
-    { memorySet: [4, 5, 6], probe: 7, isPresent: false, setSize: 3 },
-  ]);
+  const runTrialSequence = useCallback(() => {
+    if (trialIndex >= stimuli.length) return;
+    const trial = stimuli[trialIndex];
+    setCurrentTrial(trial);
+    setPhase('fixation');
+
+    // Sequence: Fixation (500ms) -> Memory Set (2000ms) -> ISI (500ms) -> Probe (until response)
+    sequenceTimeout.current = window.setTimeout(() => {
+      setPhase('memory');
+
+      sequenceTimeout.current = window.setTimeout(() => {
+        setPhase('isi');
+
+        sequenceTimeout.current = window.setTimeout(() => {
+          setPhase('probe');
+          startTimer();
+        }, 500); // 500ms ISI
+
+      }, 2000); // 2000ms set presentation
+
+    }, 500); // 500ms fixation
+  }, [trialIndex, stimuli, setPhase, startTimer]);
 
   useEffect(() => {
-    if (phase === 'instruction') {
-      setExperimentStartTime(performance.now());
+    if (phase === 'experiment') {
+      runTrialSequence();
     }
-  }, [phase]);
+    return () => {
+      if (sequenceTimeout.current) clearTimeout(sequenceTimeout.current);
+    };
+  }, [phase, trialIndex, runTrialSequence]);
 
-  const startTrial = (isPractice: boolean) => {
-    const stimuli = isPractice ? practiceStimuli : allStimuli;
-    const idx = isPractice ? trialIndex : trialIndex;
-    setCurrentTrial(stimuli[idx]);
-    setPhase('memory');
+  const handleResponseInternal = useCallback((response: 'yes' | 'no') => {
+    if (phase !== 'probe' || !currentTrial) return;
 
-    setTimeout(() => {
-      setPhase('probe');
-      setTrialStartTime(performance.now());
-    }, settings.stimulusDuration > 0 ? settings.stimulusDuration : 1000);
-  };
+    const rt = getResponseTime() || 0;
+    clearTimer();
 
-  const handleResponse = (response: 'yes' | 'no') => {
-    if (!currentTrial) return;
-
-    const endTime = performance.now();
-    const responseTime = Math.round(endTime - trialStartTime);
-
-    const isCorrect = (response === 'yes' && currentTrial.isPresent) ||
-      (response === 'no' && !currentTrial.isPresent);
-
-    if (phase === 'memory') return;
-
-    if (settings.showFeedback && trialIndex < settings.practiceTrials) {
-      setLastCorrect(isCorrect);
-      setShowFeedback(true);
-      setTimeout(() => {
-        setShowFeedback(false);
-        advanceTrial();
-      }, 500);
-      return;
-    }
-
-    const trial: TrialData = {
+    recordTrial({
       trialNumber: trialIndex + 1,
-      responseTimeMs: responseTime,
+      responseTimeMs: rt,
       answer: response,
       correctAnswer: currentTrial.isPresent ? 'yes' : 'no',
-      stimulus: { ...currentTrial },
-    };
+      stimulus: {
+        memorySet: currentTrial.memorySet.join(','),
+        probe: currentTrial.probe,
+        setSize: currentTrial.setSize,
+        isPresent: currentTrial.isPresent
+      },
+    });
 
-    setTrialData(prev => [...prev, trial]);
-    advanceTrial();
-  };
-
-  const advanceTrial = () => {
-    if (trialIndex < settings.practiceTrials - 1) {
-      setTrialIndex(prev => prev + 1);
-      setTimeout(() => startTrial(true), settings.isi > 0 ? settings.isi : 500);
-    } else if (trialIndex === settings.practiceTrials - 1) {
-      setTrialIndex(0);
-      setTimeout(() => startTrial(false), settings.isi > 0 ? settings.isi : 500);
-    } else if (trialIndex < settings.trials + settings.practiceTrials - 1) {
-      setTrialIndex(prev => prev + 1);
-      setTimeout(() => startTrial(false), settings.isi > 0 ? settings.isi : 500);
+    if (trialIndex < TOTAL_TRIALS - 1) {
+      setPhase('experiment'); // Reset to trigger next sequence
+      advanceTrial(false, TOTAL_TRIALS);
     } else {
-      completeExperiment();
+      // Calculate results
+      // Accuracy
+      // Adding current response manually because it hasn't propagated to state yet
+      const correctTrials = trialData.filter(t => t.answer === t.correctAnswer).length + (response === (currentTrial.isPresent ? 'yes' : 'no') ? 1 : 0);
+      const accuracy = (correctTrials / TOTAL_TRIALS) * 100;
+
+      // RT by set size (excluding first <100ms or >3000ms as outliers)
+      const allTrials = [...trialData, {
+        responseTimeMs: rt,
+        answer: response,
+        correctAnswer: currentTrial.isPresent ? 'yes' : 'no',
+        stimulus: { setSize: currentTrial.setSize }
+      } as any];
+
+      // Average RT slope - simple calculation of averages
+      let setSizeAverages: Record<number, number> = {};
+      SET_SIZES.forEach(size => {
+        const sizeTrials = allTrials.filter(t => t.stimulus.setSize === size && t.responseTimeMs >= 100 && t.responseTimeMs <= 3000);
+        if (sizeTrials.length > 0) {
+          const mean = sizeTrials.reduce((sum, t) => sum + t.responseTimeMs, 0) / sizeTrials.length;
+          setSizeAverages[size] = mean;
+        } else {
+          setSizeAverages[size] = 0;
+        }
+      });
+
+      // Linear regression slope (approximate items searched per ms)
+      // This is a complex stat, we will just return the JSON of the set size averages as the main "answer"
+      setPhase('complete');
+      finishExperiment(JSON.stringify(setSizeAverages), accuracy);
     }
-  };
+  }, [phase, currentTrial, getResponseTime, clearTimer, recordTrial, trialIndex, setPhase, advanceTrial, trialData, finishExperiment]);
 
-  const removeOutliers = (data: TrialData[]): TrialData[] => {
-    if (data.length < 3) return data;
-    const times = data.map(t => t.responseTimeMs).sort((a, b) => a - b);
-    const q1 = times[Math.floor(times.length * 0.25)];
-    const q3 = times[Math.floor(times.length * 0.75)];
-    const iqr = q3 - q1;
-    const lower = q1 - settings.outlierThreshold * iqr;
-    const upper = q3 + settings.outlierThreshold * iqr;
-    return data.filter(t => t.responseTimeMs >= lower && t.responseTimeMs <= upper);
-  };
-
-  const completeExperiment = () => {
-    setPhase('complete');
-    const endTime = performance.now();
-    const totalTime = Math.round(endTime - experimentStartTime);
-
-    const finalTrialData = removeOutliers(trialData);
-
-    const bySetSize: Record<number, { times: number[]; correct: number }> = {};
-    finalTrialData.forEach(t => {
-      const setSize = (t.stimulus as Trial).setSize;
-      if (!bySetSize[setSize]) bySetSize[setSize] = { times: [], correct: 0 };
-      bySetSize[setSize].times.push(t.responseTimeMs);
-      if (t.answer === t.correctAnswer) bySetSize[setSize].correct++;
-    });
-
-    const avgBySetSize: Record<number, number> = {};
-    Object.entries(bySetSize).forEach(([size, data]) => {
-      avgBySetSize[Number(size)] = data.times.reduce((a, b) => a + b, 0) / data.times.length;
-    });
-
-    const results: ExperimentResults = {
-      experimentName: experiment.id,
-      participantId,
-      roomId,
-      language,
-      timestamp: new Date().toISOString(),
-      totalTrials: trialData.length,
-      responseTimeMs: totalTime,
-      accuracy: (finalTrialData.filter(t => t.answer === t.correctAnswer).length / finalTrialData.length) * 100,
-      answer: JSON.stringify(avgBySetSize),
-      correctAnswer: 'rt_by_set_size',
-      trialData: finalTrialData,
-      debrief: t(experiment.debriefKey),
-    };
-
-    onComplete(results);
-  };
+  useResponseCapture({
+    validKeys: ['ArrowLeft', 'ArrowRight'],
+    onResponse: (key) => {
+      if (key === 'ArrowLeft') handleResponseInternal('yes');
+      if (key === 'ArrowRight') handleResponseInternal('no');
+    },
+    disabled: phase !== 'probe'
+  });
 
   if (phase === 'instruction') {
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-2xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 mb-6">{t('exp.sternberg.name')}</h2>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
+          <h2 className="mb-6">{t('exp.sternberg.name')}</h2>
+          <div className="experiment-instruction mb-8">
+            <p className="mb-4">{t('exp.sternberg.instruction')}</p>
+            <p className="mb-4">1. You will be shown a set of numbers (2, 4, 6, or 8 digits long) for 2 seconds.</p>
+            <p className="mb-4">2. The screen will briefly go blank.</p>
+            <p className="mb-4">3. A single "probe" number will appear.</p>
+            <p className="mb-6">4. Respond as quickly and accurately as possible whether the probe was in the original set.</p>
 
-          <div className="bg-slate-50 border-l-4 border-teal-500 p-5 rounded-r-lg shadow-sm mb-6">
-            <p className="text-slate-700 leading-relaxed text-md">
-              {settings.customInstructions || t('exp.sternberg.instruction')}
-            </p>
+            <div className="flex justify-around items-center bg-surface p-4 rounded border border-border">
+              <div className="text-center">
+                <span className="kb-key mb-2">←</span>
+                <p className="text-sm font-medium">YES / Present</p>
+              </div>
+              <div className="text-center">
+                <span className="kb-key mb-2">→</span>
+                <p className="text-sm font-medium">NO / Absent</p>
+              </div>
+            </div>
           </div>
-
-          <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mb-8">
-            <p className="text-sm font-semibold text-indigo-900 mb-2 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              {t('exp.sternberg.instructionDetail')}
-            </p>
-          </div>
-
-          <p className="text-sm font-medium text-slate-400 mb-8 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-            {t('citation')}: {experiment.citation}, {experiment.year}
-          </p>
-
-          <button
-            onClick={() => startTrial(true)}
-            className="group relative w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold flex tracking-wide items-center justify-center gap-3 px-8 py-4 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-          >
+          <button onClick={() => setPhase('experiment')} className="btn-primary w-full sm:w-auto">
             {t('common.start')}
-            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
       </ExperimentWrapper>
@@ -255,123 +202,121 @@ export function SternbergExperiment({ experiment, onComplete, participantId, roo
   }
 
   if (phase === 'complete') {
-    const bySetSize: Record<number, number[]> = {};
-    trialData.forEach(t => {
-      const setSize = (t.stimulus as Trial).setSize;
-      if (!bySetSize[setSize]) bySetSize[setSize] = [];
-      bySetSize[setSize].push(t.responseTimeMs);
+    // Parse the JSON string answer back to display it
+    const setSizeAverages: Record<number, number> = {};
+
+    // Recalculate just for UI display
+    SET_SIZES.forEach(size => {
+      const sizeTrials = trialData.filter(t => (t.stimulus as any).setSize === size && t.responseTimeMs >= 100 && t.responseTimeMs <= 3000);
+      if (sizeTrials.length > 0) {
+        setSizeAverages[size] = sizeTrials.reduce((sum, t) => sum + t.responseTimeMs, 0) / sizeTrials.length;
+      }
     });
+
+    const correct = trialData.filter(t => t.answer === t.correctAnswer).length;
 
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-2xl mx-auto p-6">
-          <h2 className="text-2xl font-bold text-navy-900 mb-4">{t('common.debrief.title')}</h2>
-          <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-4">
-            <p className="text-teal-800 font-medium">{t('common.debrief.thankYou')}</p>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
+          <h2 className="mb-6">{t('common.debrief.title')}</h2>
+
+          <div className="bg-success/10 border-l-4 border-success p-4 mb-6">
+            <p className="text-success-800 font-medium">{t('common.debrief.thankYou')}</p>
           </div>
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {settings.setSizes.map(size => (
-              <div key={size} className="bg-gray-50 p-4 rounded-lg text-center">
-                <p className="text-2xl font-bold text-navy-900">
-                  {Math.round(bySetSize[size]?.reduce((a, b) => a + b, 0) / bySetSize[size]?.length || 0)}ms
-                </p>
-                <p className="text-sm text-gray-600">n={size}</p>
-              </div>
-            ))}
+
+          <div className="mb-6">
+            <p className="text-lg font-medium mb-4">Average Response Times by Set Size:</p>
+            <div className="grid grid-cols-4 gap-4">
+              {SET_SIZES.map(size => (
+                <div key={size} className="bg-surface p-4 rounded border border-border text-center">
+                  <p className="text-2xl font-bold text-primary mb-1">
+                    {Math.round(setSizeAverages[size] || 0)}ms
+                  </p>
+                  <p className="text-sm text-text-secondary">Size: {size}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4">
-            <p className="text-amber-800 font-medium mb-2">{t('exp.sternberg.interpretation')}</p>
-            <p className="text-sm text-amber-700">{t('exp.sternberg.slopeExplanation')}</p>
+
+          <div className="bg-info/10 border border-info/20 p-6 rounded mb-8">
+            <p className="mb-2"><strong>Accuracy:</strong> {Math.round((correct / TOTAL_TRIALS) * 100)}%</p>
+            <h3 className="text-info-800 mb-2">{t('exp.sternberg.interpretation')}</h3>
+            <p className="text-sm text-info-700">{t('exp.sternberg.slopeExplanation')}</p>
           </div>
-          <p className="text-gray-600 mb-4">{t('exp.sternberg.debrief')}</p>
+
+          <div className="prose prose-sm text-text-secondary">
+            <h4 className="text-text-primary">What this experiment measures:</h4>
+            <p>{t('exp.sternberg.debrief')}</p>
+
+            <h4 className="text-text-primary mt-4">Typical Findings:</h4>
+            <p>Reaction time increases linearly with set size, at approximately 35–40ms per additional item. Critically, the slope is the same for items that were in the set (positive probes) and items that were not (negative probes), suggesting an exhaustive serial search.</p>
+
+            <h4 className="text-text-primary mt-4">Why it occurs:</h4>
+            <p>Sternberg proposed that when checking if a probe item was in the memorized set, the brain compares the probe against each item in sequence rather than stopping at the first match. This exhaustive serial scanning process explains why response time grows linearly with set size.</p>
+
+            <p className="mt-4 text-xs italic">Sternberg, S. (1966). High-speed scanning in human memory. <em>Science, 153</em>(3736), 652–654.</p>
+          </div>
         </div>
       </ExperimentWrapper>
     );
   }
 
-  if (!currentTrial) return null;
-
   return (
     <ExperimentWrapper experiment={experiment}>
-      <div className="max-w-4xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white -z-10"></div>
-        {settings.showProgressBar && (
-          <div className="mb-8 px-4 pt-2">
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-500 ease-out"
-                style={{ width: `${((trialIndex + 1) / (settings.trials + settings.practiceTrials)) * 100}%` }}
-              />
-            </div>
-            <div className="flex justify-between items-center mt-3">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{trialIndex < settings.practiceTrials ? 'Practice' : 'Experiment'}</span>
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                {trialIndex + 1} / {settings.trials + settings.practiceTrials}
-              </span>
-            </div>
+      <div className="max-w-2xl mx-auto py-8">
+        <div className="mb-12">
+          <div className="h-1 bg-surface rounded overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${((trialIndex) / TOTAL_TRIALS) * 100}%` }}
+            />
           </div>
-        )}
+        </div>
 
-        {showFeedback && (
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-20 pointer-events-none transform transition-all animate-bounce-short">
-            <div className={`flex items-center justify-center w-24 h-24 rounded-full ${lastCorrect ? 'bg-emerald-100 text-emerald-500' : 'bg-rose-100 text-rose-500'} shadow-lg backdrop-blur-md bg-opacity-80`}>
-              <span className="text-5xl font-bold">
-                {lastCorrect ? '✓' : '✗'}
-              </span>
-            </div>
-          </div>
-        )}
+        <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded bg-surface p-8">
 
-        {phase === 'memory' && (
-          <div className="flex-1 flex flex-col items-center justify-center animate-fade-in">
-            <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-12 text-center">
-              {t('exp.sternberg.remember')}
-            </h2>
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mb-8 w-full max-w-2xl bg-white/50 p-8 rounded-2xl shadow-sm border border-slate-100">
+          {phase === 'fixation' && (
+            <div className="text-6xl font-light text-text-muted">+</div>
+          )}
+
+          {phase === 'memory' && currentTrial && (
+            <div className="flex flex-wrap justify-center gap-4 max-w-lg">
               {currentTrial.memorySet.map((num, i) => (
-                <div
-                  key={i}
-                  className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-xl shadow-lg flex items-center justify-center text-3xl font-bold transform transition-transform duration-300 hover:scale-105"
-                  style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'both' }}
-                >
+                <div key={i} className="text-5xl font-mono font-bold text-text-primary">
                   {num}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {phase === 'isi' && (
+            <div></div> // Blank screen
+          )}
+
+          {phase === 'probe' && currentTrial && (
+            <div className="text-8xl font-mono font-bold text-primary">
+              {currentTrial.probe}
+            </div>
+          )}
+
+        </div>
 
         {phase === 'probe' && (
-          <div className="flex-1 flex flex-col items-center justify-center animate-fade-in w-full">
-            <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-12 text-center">
-              {t('exp.sternberg.wasInSet')}
-            </h2>
-            <div className="flex justify-center mb-12">
-              <div className="relative group w-28 h-28">
-                <div className="absolute inset-0 bg-teal-400 rounded-2xl opacity-50 blur-lg group-hover:opacity-75 transition-opacity duration-300 animate-pulse"></div>
-                <div className="relative w-full h-full bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-2xl shadow-xl border border-teal-400/50 flex items-center justify-center text-5xl font-extrabold">
-                  {currentTrial.probe}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-center gap-6 w-full max-w-xl">
-              <button
-                onClick={() => handleResponse('yes')}
-                className="group relative flex-1 py-6 bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-teal-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-teal-500/20"
-              >
-                <span className="absolute inset-0 bg-teal-50/0 group-hover:bg-teal-50/50 rounded-2xl transition-colors"></span>
-                <span className="text-2xl font-bold text-slate-700 group-hover:text-teal-700 z-10 transition-colors uppercase tracking-wide">{t('common.yes')}</span>
-              </button>
-
-              <button
-                onClick={() => handleResponse('no')}
-                className="group relative flex-1 py-6 bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-slate-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-slate-500/20"
-              >
-                <span className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/50 rounded-2xl transition-colors"></span>
-                <span className="text-2xl font-bold text-slate-700 group-hover:text-slate-800 z-10 transition-colors uppercase tracking-wide">{t('common.no')}</span>
-              </button>
-            </div>
+          <div className="mt-12 flex justify-center gap-8">
+            <button
+              onClick={() => handleResponseInternal('yes')}
+              className="w-40 border-2 border-border hover:border-primary bg-white py-4 rounded font-bold text-lg transition-colors flex flex-col items-center gap-2"
+            >
+              <span className="text-text-primary uppercase tracking-wide">{t('common.yes')}</span>
+              <span className="kb-key">←</span>
+            </button>
+            <button
+              onClick={() => handleResponseInternal('no')}
+              className="w-40 border-2 border-border hover:border-primary bg-white py-4 rounded font-bold text-lg transition-colors flex flex-col items-center gap-2"
+            >
+              <span className="text-text-primary uppercase tracking-wide">{t('common.no')}</span>
+              <span className="kb-key">→</span>
+            </button>
           </div>
         )}
       </div>

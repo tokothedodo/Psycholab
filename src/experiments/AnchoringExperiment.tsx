@@ -43,7 +43,7 @@ interface Trial {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('anchoring'),
+  ...getDefaultConfig('anchoring-and-adjustment-heuristic-task'),
   showAnchor: true,
 } as AnchoringConfig;
 

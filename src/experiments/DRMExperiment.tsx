@@ -1,364 +1,367 @@
-/**
- * DRM FALSE MEMORY - Memory Experiment
- * 
- * Tests false recognition of semantic lures.
- * Participants study word lists and later recognize words.
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ExperimentWrapper } from './ExperimentWrapper';
+import { useExperiment } from '../hooks/useExperiment';
+import { useTimer } from '../hooks/useTimer';
+import { useResponseCapture } from '../hooks/useResponseCapture';
+import { fisherYatesShuffle } from '../lib/random';
 import type { Experiment } from '../data/experiments';
-import type { TrialData, ExperimentResults } from './ExperimentWrapper';
-import { getDefaultConfig } from './config/experimentDefaults';
-
-interface DRMConfig {
-  trials: number;
-  isi: number;
-  stimulusDuration: number;
-  responseTimeLimit: number;
-  showFeedback: boolean;
-  showProgressBar: boolean;
-  customInstructions: string;
-  randomizeOrder: boolean;
-  practiceTrials: number;
-  outlierRemoval: boolean;
-  outlierThreshold: number;
-}
 
 interface DRMProps {
   experiment: Experiment;
-  onComplete: (results: ExperimentResults) => void;
+  onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
-  config?: Partial<DRMConfig>;
 }
 
-interface Trial {
-  type: 'studied' | 'lure' | 'new';
-  word: string;
-  list?: string[];
-}
-
-const LISTS = [
-  { lure: 'sleep', words: ['bed', 'rest', 'awake', 'tired', 'dream', 'wake', 'snooze', 'blanket', 'pillow', 'night'] },
-  { lure: 'cold', words: ['winter', 'snow', 'ice', 'chill', 'frost', 'freezing', 'hot', 'warm', 'jacket', 'freezer'] },
-  { lure: 'needle', words: ['thread', 'pin', 'sharp', 'sew', 'prick', 'point', 'eye', 'pain', 'cloth', 'hurt'] },
-  { lure: 'window', words: ['glass', 'frame', 'pane', 'sill', 'curtain', 'view', 'door', 'house', 'light', 'open'] },
+// Classic Roediger & McDermott (1995) DRM Lists
+const DRM_LISTS = [
+  { lure: 'sleep', words: ['bed', 'rest', 'awake', 'tired', 'dream', 'wake', 'snooze', 'blanket', 'doze', 'slumber', 'snore', 'nap', 'peace', 'yawn', 'drowsy'] },
+  { lure: 'cold', words: ['winter', 'ice', 'snow', 'freeze', 'chill', 'shiver', 'arctic', 'weather', 'hot', 'frigid', 'frost', 'polar', 'draft', 'cool', 'numb'] },
+  { lure: 'needle', words: ['thread', 'pin', 'eye', 'sewing', 'sharp', 'point', 'prick', 'thimble', 'haystack', 'thorn', 'hurt', 'injection', 'syringe', 'cloth', 'knitting'] },
+  { lure: 'window', words: ['door', 'glass', 'pane', 'shade', 'ledge', 'sill', 'house', 'open', 'curtain', 'frame', 'view', 'breeze', 'sash', 'screen', 'shutter'] },
+  { lure: 'sweet', words: ['sour', 'candy', 'sugar', 'bitter', 'good', 'taste', 'tooth', 'nice', 'honey', 'soda', 'chocolate', 'heart', 'cake', 'tart', 'pie'] },
+  { lure: 'chair', words: ['table', 'sit', 'legs', 'seat', 'couch', 'desk', 'recliner', 'sofa', 'wood', 'cushion', 'swivel', 'stool', 'sitting', 'rocking', 'bench'] }
 ];
 
-const DEFAULT_CONFIG = {
-  ...getDefaultConfig('drm'),
-  trials: 12,
-  stimulusDuration: 2000,
-} as DRMConfig;
+const NUM_STUDY_LISTS = 3;
+const WORD_DURATION_MS = 1500;
 
-export function DRMExperiment({ experiment, onComplete, participantId, roomId, config = {} }: DRMProps) {
+interface TestWord {
+  word: string;
+  type: 'studied' | 'studied_lure' | 'unstudied' | 'unstudied_lure';
+}
+
+export function DRMExperiment({ experiment, onComplete, participantId, roomId }: DRMProps) {
   const { t, language } = useLanguage();
 
-  const settings: DRMConfig = {
-    ...DEFAULT_CONFIG,
-    ...config,
-  };
+  const [studyWords, setStudyWords] = useState<string[]>([]);
+  const [testWords, setTestWords] = useState<TestWord[]>([]);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
-  const [phase, setPhase] = useState<'instruction' | 'study' | 'break' | 'test' | 'complete'>('instruction');
-  const [trialIndex, setTrialIndex] = useState(0);
-  const [trialData, setTrialData] = useState<TrialData[]>([]);
-  const [experimentStartTime, setExperimentStartTime] = useState(0);
-  const [trialStartTime, setTrialStartTime] = useState(0);
-  const [currentTrial, setCurrentTrial] = useState<Trial | null>(null);
-  const [wordIndex, setWordIndex] = useState(0);
+  const {
+    phase,
+    setPhase,
+    trialIndex,
+    trialData,
+    recordTrial,
+    startExperiment,
+    advanceTrial,
+    finishExperiment,
+  } = useExperiment({ experiment, participantId, roomId, language, onComplete });
 
-  const generateStimuli = useCallback((): { study: Trial[]; test: Trial[] } => {
-    const studyList = LISTS.slice(0, settings.trials / 3).map(list => ({
-      type: 'studied' as const,
-      word: list.words[Math.floor(Math.random() * 5)],
-      list: list.words,
-    }));
+  const { startTimer, getResponseTime, clearTimer } = useTimer();
 
-    const testList: Trial[] = [];
-    LISTS.slice(0, settings.trials / 3).forEach(list => {
-      testList.push({ type: 'studied', word: list.words[Math.floor(Math.random() * 5)], list: list.words });
-      testList.push({ type: 'lure', word: list.lure, list: list.words });
-      testList.push({ type: 'new', word: list.words[8 + Math.floor(Math.random() * 2)], list: list.words });
+  const generateStimuli = useCallback(() => {
+    // 1. Shuffle lists and pick 3 for study, 3 for unstudied
+    const shuffledLists = fisherYatesShuffle(DRM_LISTS);
+    const studiedLists = shuffledLists.slice(0, NUM_STUDY_LISTS);
+    const unstudiedLists = shuffledLists.slice(NUM_STUDY_LISTS);
+
+    // 2. Generate study sequence (all words from studied lists, one list after another)
+    let studySequence: string[] = [];
+    studiedLists.forEach(list => {
+      studySequence = studySequence.concat(list.words);
+    });
+    setStudyWords(studySequence);
+
+    // 3. Generate test sequence
+    // - 9 studied words (positions 1, 8, 15 from each studied list)
+    // - 3 studied lures
+    // - 9 unstudied words (positions 1, 8, 15 from each unstudied list)
+    // - 3 unstudied lures
+    let testSequence: TestWord[] = [];
+
+    studiedLists.forEach(list => {
+      testSequence.push({ word: list.words[0], type: 'studied' });
+      testSequence.push({ word: list.words[7], type: 'studied' });
+      testSequence.push({ word: list.words[14], type: 'studied' });
+      testSequence.push({ word: list.lure, type: 'studied_lure' });
     });
 
-    if (settings.randomizeOrder) {
-      return { study: studyList.sort(() => Math.random() - 0.5), test: testList.sort(() => Math.random() - 0.5) };
-    }
-    return { study: studyList, test: testList };
-  }, [settings.trials, settings.randomizeOrder]);
+    unstudiedLists.forEach(list => {
+      testSequence.push({ word: list.words[0], type: 'unstudied' });
+      testSequence.push({ word: list.words[7], type: 'unstudied' });
+      testSequence.push({ word: list.words[14], type: 'unstudied' });
+      testSequence.push({ word: list.lure, type: 'unstudied_lure' });
+    });
 
-  const { study: studyData, test: testData } = generateStimuli();
-  const [allStudyTrials] = useState(studyData);
-  const [allTestTrials] = useState(testData);
+    setTestWords(fisherYatesShuffle(testSequence));
+  }, []);
 
+  const handleStartStudy = () => {
+    generateStimuli();
+    startExperiment('study');
+    setCurrentWordIndex(0);
+  };
+
+  const handleStartTest = () => {
+    setPhase('test');
+    setCurrentWordIndex(0); // We use trialIndex for test words via useExperiment, but let's reset this just in case
+    startTimer();
+  };
+
+  // Study Phase Presentation Timer
   useEffect(() => {
-    if (phase === 'instruction') {
-      setExperimentStartTime(performance.now());
+    if (phase === 'study' && studyWords.length > 0) {
+      if (currentWordIndex >= studyWords.length) {
+        setPhase('break');
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        setCurrentWordIndex(prev => prev + 1);
+      }, WORD_DURATION_MS);
+
+      return () => clearTimeout(timer);
     }
-  }, [phase]);
+  }, [phase, currentWordIndex, studyWords, setPhase]);
 
-  useEffect(() => {
-    if (phase === 'study' && allStudyTrials[trialIndex]) {
-      setWordIndex(0);
-      const timer = setInterval(() => {
-        setWordIndex(prev => {
-          if (prev < allStudyTrials[trialIndex].list!.length - 1) return prev + 1;
-          clearInterval(timer);
-          return prev;
-        });
-      }, settings.stimulusDuration);
-      return () => clearInterval(timer);
-    }
-  }, [phase, trialIndex]);
+  const handleResponseInternal = useCallback((response: 'old' | 'new') => {
+    if (phase !== 'test') return;
 
-  const handleResponse = (response: 'old' | 'new') => {
-    if (!currentTrial) return;
+    const rt = getResponseTime() || 0;
+    clearTimer();
 
-    const endTime = performance.now();
-    const responseTime = Math.round(endTime - trialStartTime);
+    const testWord = testWords[trialIndex];
+    const isActuallyOld = testWord.type === 'studied';
 
-    const trial: TrialData = {
+    recordTrial({
       trialNumber: trialIndex + 1,
-      responseTimeMs: responseTime,
+      responseTimeMs: rt,
       answer: response,
-      correctAnswer: currentTrial.type === 'new' ? 'new' : 'old',
-      stimulus: { ...currentTrial },
-    };
+      correctAnswer: isActuallyOld ? 'old' : 'new',
+      stimulus: testWord,
+    });
 
-    setTrialData(prev => [...prev, trial]);
-
-    if (trialIndex < allTestTrials.length - 1) {
-      setTrialIndex(prev => prev + 1);
-      setCurrentTrial(allTestTrials[trialIndex + 1]);
-      setTrialStartTime(performance.now());
+    if (trialIndex < testWords.length - 1) {
+      advanceTrial(false, testWords.length);
+      startTimer();
     } else {
-      completeExperiment();
+      // Calculate final results
+      // Accuracy logic for DRM often looks at hit rate vs false alarm rate
+      // Since states are not updated yet with the current trial, we do it carefully:
+      const allResponses = [...trialData, {
+        answer: response,
+        stimulus: testWord
+      }];
+
+      const falseAlarmsToLures = allResponses.filter(t => t.answer === 'old' && (t.stimulus as TestWord).type === 'studied_lure').length;
+      const trueHits = allResponses.filter(t => t.answer === 'old' && (t.stimulus as TestWord).type === 'studied').length;
+      const falseAlarmsToUnstudied = allResponses.filter(t => t.answer === 'old' && (t.stimulus as TestWord).type === 'unstudied').length;
+
+      const accuracy = (allResponses.filter(t => {
+        const isOld = (t.stimulus as TestWord).type === 'studied';
+        return (t.answer === 'old' && isOld) || (t.answer === 'new' && !isOld);
+      }).length / allResponses.length) * 100;
+
+      setPhase('complete');
+      finishExperiment(JSON.stringify({
+        studiedHits: trueHits,
+        studiedLureFalseAlarms: falseAlarmsToLures,
+        unstudiedFalseAlarms: falseAlarmsToUnstudied
+      }), accuracy);
     }
-  };
+  }, [phase, getResponseTime, clearTimer, testWords, trialIndex, recordTrial, advanceTrial, startTimer, trialData, setPhase, finishExperiment]);
 
-  const completeExperiment = () => {
-    setPhase('complete');
-    const endTime = performance.now();
-    const totalTime = Math.round(endTime - experimentStartTime);
-
-    const lureHits = trialData.filter(t => t.answer === 'old' && (t.stimulus as Trial).type === 'lure').length;
-
-    const results: ExperimentResults = {
-      experimentName: experiment.id,
-      participantId,
-      roomId,
-      language,
-      timestamp: new Date().toISOString(),
-      totalTrials: trialData.length,
-      responseTimeMs: totalTime,
-      accuracy: (trialData.filter(t => t.answer === t.correctAnswer).length / trialData.length) * 100,
-      answer: lureHits,
-      correctAnswer: 'lure_false_alarm',
-      trialData: trialData,
-      debrief: t(experiment.debriefKey),
-    };
-
-    onComplete(results);
-  };
+  useResponseCapture({
+    validKeys: ['ArrowLeft', 'ArrowRight'],
+    onResponse: (key) => {
+      if (key === 'ArrowLeft') handleResponseInternal('old');
+      if (key === 'ArrowRight') handleResponseInternal('new');
+    },
+    disabled: phase !== 'test'
+  });
 
   if (phase === 'instruction') {
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-2xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 mb-6">{t('exp.drm.name')}</h2>
-
-          <div className="bg-slate-50 border-l-4 border-teal-500 p-5 rounded-r-lg shadow-sm mb-6">
-            <p className="text-slate-700 leading-relaxed text-md">
-              {settings.customInstructions || t('exp.drm.instruction')}
-            </p>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
+          <h2 className="mb-6">{t('exp.drm.name')}</h2>
+          <div className="experiment-instruction mb-8">
+            <p className="mb-4">{t('exp.drm.instruction')}</p>
+            <div className="bg-info/10 border border-info/20 p-4 rounded mb-6 text-info-900 text-sm">
+              <p className="font-medium mb-2">{t('exp.drm.instructionDetail')}</p>
+              <ul className="list-disc pl-5 space-y-1 mt-2">
+                <li>You will see several lists of words.</li>
+                <li>Words will appear quickly, one at a time. Pay close attention.</li>
+                <li>After all lists are shown, there will be a memory test.</li>
+              </ul>
+            </div>
+            <p className="text-xs italic text-text-muted mt-4">{t('citation')}: {experiment.citation}, {experiment.year}</p>
           </div>
-
-          <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mb-8">
-            <p className="text-sm font-semibold text-indigo-900 mb-2 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              {t('exp.drm.instructionDetail')}
-            </p>
-          </div>
-
-          <p className="text-sm font-medium text-slate-400 mb-8 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-            {t('citation')}: {experiment.citation}, {experiment.year}
-          </p>
-
-          <button
-            onClick={() => { setPhase('study'); setTrialIndex(0); }}
-            className="group relative w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold flex tracking-wide items-center justify-center gap-3 px-8 py-4 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-          >
+          <button onClick={handleStartStudy} className="btn-primary w-full sm:w-auto">
             {t('common.start')}
-            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
       </ExperimentWrapper>
     );
   }
 
-  if (phase === 'complete') {
-    const lureFA = trialData.filter(t => (t.stimulus as Trial).type === 'lure' && t.answer === 'old').length;
-    const studiedHits = trialData.filter(t => (t.stimulus as Trial).type === 'studied' && t.answer === 'old').length;
-    const correctRejections = trialData.filter(t => (t.stimulus as Trial).type === 'new' && t.answer === 'new').length;
+  if (phase === 'study') {
+    const isFixation = currentWordIndex % 15 === 0 && currentWordIndex > 0 && currentWordIndex < studyWords.length;
 
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-2xl mx-auto p-6">
-          <h2 className="text-2xl font-bold text-navy-900 mb-4">{t('common.debrief.title')}</h2>
-          <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-4">
-            <p className="text-teal-800 font-medium">{t('common.debrief.thankYou')}</p>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <p className="text-2xl font-bold text-navy-900">{studiedHits}/{trialData.filter(t => (t.stimulus as Trial).type === 'studied').length}</p>
-              <p className="text-sm text-gray-600">{t('exp.drm.studied')}</p>
+        <div className="max-w-2xl mx-auto py-8">
+          <div className="mb-12">
+            <div className="h-1 bg-surface rounded overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${(currentWordIndex / studyWords.length) * 100}%` }}
+              />
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <p className="text-2xl font-bold text-navy-900">{lureFA}/{trialData.filter(t => (t.stimulus as Trial).type === 'lure').length}</p>
-              <p className="text-sm text-gray-600">{t('exp.drm.lureFalseAlarm')}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <p className="text-2xl font-bold text-navy-900">{correctRejections}/{trialData.filter(t => (t.stimulus as Trial).type === 'new').length}</p>
-              <p className="text-sm text-gray-600">{t('exp.drm.correctRejection')}</p>
-            </div>
+            <p className="text-xs text-text-muted font-medium uppercase tracking-wider mt-2 text-right">
+              Study Phase
+            </p>
           </div>
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4">
-            <p className="text-amber-800 font-medium mb-2">{t('exp.drm.interpretation')}</p>
-            <p className="text-sm text-amber-700">{t('exp.drm.explanation')}</p>
+
+          <div className="flex flex-col items-center justify-center min-h-[300px] bg-surface border border-border rounded p-8">
+            {isFixation ? (
+              <div className="text-6xl font-light text-text-muted">+</div>
+            ) : (
+              <div className="text-7xl font-bold text-text-primary capitalize tracking-tight animate-fade-in" key={studyWords[currentWordIndex]}>
+                {studyWords[currentWordIndex]}
+              </div>
+            )}
           </div>
-          <p className="text-gray-600 mb-4">{t('exp.drm.debrief')}</p>
         </div>
       </ExperimentWrapper>
     );
   }
 
-  if (phase === 'test' && currentTrial) {
+  if (phase === 'break') {
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-3xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white -z-10"></div>
+        <div className="bg-white border border-border rounded p-8 max-w-xl mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-4">Study Phase Complete</h2>
+          <p className="text-text-secondary mb-8">
+            You will now be shown a series of single words. For each word, decide if it was on the lists you just studied (OLD) or if it is a completely new word (NEW).
+          </p>
 
-          {settings.showProgressBar && (
-            <div className="mb-8 px-4 pt-2">
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-500 ease-out"
-                  style={{ width: `${((trialIndex + 1) / allTestTrials.length) * 100}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md uppercase tracking-wider">
-                  {t('exp.drm.testPhase')}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                  {trialIndex + 1} / {allTestTrials.length}
-                </span>
-              </div>
+          <div className="flex justify-around items-center bg-surface p-4 rounded border border-border mb-8">
+            <div className="text-center">
+              <span className="kb-key mb-2">←</span>
+              <p className="text-sm font-medium">{t('exp.drm.old')} (Studied)</p>
             </div>
-          )}
+            <div className="text-center">
+              <span className="kb-key mb-2">→</span>
+              <p className="text-sm font-medium">{t('exp.drm.new')} (Unstudied)</p>
+            </div>
+          </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center animate-fade-in w-full max-w-xl mx-auto">
-            <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight mb-8 text-center">
+          <button onClick={handleStartTest} className="btn-primary">
+            Start Memory Test
+          </button>
+        </div>
+      </ExperimentWrapper>
+    );
+  }
+
+  if (phase === 'test') {
+    return (
+      <ExperimentWrapper experiment={experiment}>
+        <div className="max-w-2xl mx-auto py-8">
+          <div className="mb-12">
+            <div className="h-1 bg-surface rounded overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${(trialIndex / testWords.length) * 100}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
+                Memory Test
+              </span>
+              <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
+                Test {trialIndex + 1} / {testWords.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded bg-surface p-8">
+            <h2 className="text-2xl font-bold text-text-muted tracking-tight mb-8">
               {t('exp.drm.wasPresented')}
             </h2>
 
-            <div className="flex justify-center mb-12 w-full">
-              <div className="w-full sm:w-2/3 h-32 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center relative overflow-hidden group">
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-400 to-emerald-400 opacity-50"></div>
-                <span className="text-4xl sm:text-5xl font-black text-slate-800 tracking-tight capitalize group-hover:scale-105 transition-transform duration-300">
-                  {currentTrial.word}
-                </span>
-              </div>
+            <div className="text-6xl font-extrabold text-primary capitalize drop-shadow-sm">
+              {testWords[trialIndex]?.word}
             </div>
+          </div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-5 w-full">
-              <button
-                onClick={() => handleResponse('old')}
-                className="group relative flex-1 py-6 px-4 bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-teal-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center focus:outline-none focus:ring-4 focus:ring-teal-500/20"
-              >
-                <span className="absolute inset-0 bg-teal-50/0 group-hover:bg-teal-50/50 rounded-2xl transition-colors"></span>
-                <span className="text-xl font-bold text-slate-700 group-hover:text-teal-700 z-10 transition-colors">{t('exp.drm.old')}</span>
-              </button>
-              <button
-                onClick={() => handleResponse('new')}
-                className="group relative flex-1 py-6 px-4 bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-indigo-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
-              >
-                <span className="absolute inset-0 bg-indigo-50/0 group-hover:bg-indigo-50/50 rounded-2xl transition-colors"></span>
-                <span className="text-xl font-bold text-slate-700 group-hover:text-indigo-700 z-10 transition-colors">{t('exp.drm.new')}</span>
-              </button>
-            </div>
+          <div className="mt-12 flex justify-center gap-8">
+            <button
+              onClick={() => handleResponseInternal('old')}
+              className="w-40 border-2 border-border hover:border-primary bg-white py-4 rounded font-bold text-lg transition-colors flex flex-col items-center gap-2"
+            >
+              <span className="text-text-primary uppercase tracking-wide">{t('exp.drm.old')}</span>
+              <span className="kb-key">←</span>
+            </button>
+            <button
+              onClick={() => handleResponseInternal('new')}
+              className="w-40 border-2 border-border hover:border-primary bg-white py-4 rounded font-bold text-lg transition-colors flex flex-col items-center gap-2"
+            >
+              <span className="text-text-primary uppercase tracking-wide">{t('exp.drm.new')}</span>
+              <span className="kb-key">→</span>
+            </button>
           </div>
         </div>
       </ExperimentWrapper>
     );
   }
 
-  if (phase === 'study' && allStudyTrials[trialIndex]) {
+  if (phase === 'complete') {
+    const falseAlarmsToLures = trialData.filter(t => t.answer === 'old' && (t.stimulus as TestWord).type === 'studied_lure').length;
+    const trueHits = trialData.filter(t => t.answer === 'old' && (t.stimulus as TestWord).type === 'studied').length;
+    const falseAlarmsToUnstudied = trialData.filter(t => t.answer === 'old' && (t.stimulus as TestWord).type === 'unstudied').length;
+
     return (
       <ExperimentWrapper experiment={experiment}>
-        <div className="max-w-4xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white -z-10"></div>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
+          <h2 className="mb-6">{t('common.debrief.title')}</h2>
 
-          {settings.showProgressBar && (
-            <div className="mb-8 px-4 pt-2">
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-500 ease-out"
-                  style={{ width: `${((trialIndex + 1) / allStudyTrials.length) * 100}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md uppercase tracking-wider">
-                  {t('exp.drm.studyPhase')}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                  List {trialIndex + 1} / {allStudyTrials.length}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="text-center mb-10 mt-4">
-            <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-              {t('exp.drm.memorizeList')}
-            </h2>
+          <div className="bg-success/10 border-l-4 border-success p-4 mb-6">
+            <p className="text-success-800 font-medium">{t('common.debrief.thankYou')}</p>
           </div>
 
-          <div className="flex-1 flex justify-center items-center w-full min-h-[250px] mb-8">
-            <div className="relative group w-full sm:w-[500px] h-64 mx-auto max-w-full">
-              <div className="absolute inset-0 bg-teal-400 rounded-3xl opacity-20 blur-xl group-hover:opacity-30 transition-opacity duration-300"></div>
-
-              <div className="relative w-full h-full bg-white/70 backdrop-blur-md rounded-3xl shadow-lg border border-teal-100/50 flex flex-col items-center justify-center p-8 overflow-hidden">
-                <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-3xl"></div>
-
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                  Word {wordIndex + 1} of {allStudyTrials[trialIndex].list?.length || 0}
-                </span>
-
-                <span
-                  key={allStudyTrials[trialIndex].list?.[wordIndex]}
-                  className="text-5xl sm:text-6xl font-black text-slate-800 tracking-tight capitalize drop-shadow-sm animate-fade-in"
-                >
-                  {allStudyTrials[trialIndex].list?.[wordIndex]}
-                </span>
-              </div>
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="bg-surface p-4 rounded border border-border text-center flex flex-col items-center justify-center">
+              <p className="text-3xl font-bold text-primary mb-1">{Math.round((trueHits / 9) * 100)}%</p>
+              <p className="text-sm text-text-secondary">{t('exp.drm.studied')}</p>
+              <p className="text-xs text-text-muted mt-1">(Hit Rate)</p>
+            </div>
+            <div className="bg-surface p-4 rounded border border-border text-center flex flex-col items-center justify-center">
+              <p className="text-3xl font-bold text-error mb-1">{Math.round((falseAlarmsToLures / 3) * 100)}%</p>
+              <p className="text-sm text-text-secondary">{t('exp.drm.lureFalseAlarm')}</p>
+              <p className="text-xs text-text-muted mt-1">(False Memory)</p>
+            </div>
+            <div className="bg-surface p-4 rounded border border-border text-center flex flex-col items-center justify-center">
+              <p className="text-3xl font-bold text-primary mb-1">{Math.round((falseAlarmsToUnstudied / 9) * 100)}%</p>
+              <p className="text-sm text-text-secondary">Unrelated False Alarms</p>
+              <p className="text-xs text-text-muted mt-1">(Baseline Error)</p>
             </div>
           </div>
 
-          {wordIndex >= (allStudyTrials[trialIndex].list?.length || 0) - 1 && trialIndex < allStudyTrials.length - 1 && (
-            <div className="flex justify-center mt-auto pb-4 animate-fade-in">
-              <button
-                onClick={() => { setTrialIndex(prev => prev + 1); setWordIndex(0); }}
-                className="group relative inline-flex px-8 py-4 bg-white rounded-xl shadow-sm border border-slate-200 hover:border-teal-400 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-teal-500/20"
-              >
-                <span className="text-lg font-bold text-slate-700 group-hover:text-teal-600 transition-colors">Next List</span>
-                <svg className="w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-              </button>
-            </div>
-          )}
+          <div className="bg-info/10 border border-info/20 p-6 rounded mb-8 text-info-900 text-sm">
+            <h3 className="font-bold mb-2">{t('exp.drm.interpretation')}</h3>
+            <p>{t('exp.drm.explanation')}</p>
+            {falseAlarmsToLures > falseAlarmsToUnstudied && (
+              <p className="mt-2 font-medium">You showed a classic false memory effect, identifying critical lures as "old" more often than unrelated new words.</p>
+            )}
+          </div>
+
+          <div className="prose prose-sm text-text-secondary">
+            <h4 className="text-text-primary">What this experiment measures:</h4>
+            <p>{t('exp.drm.debrief')}</p>
+
+            <h4 className="text-text-primary mt-4">Typical Findings:</h4>
+            <p>Participants typically recognize critical lure words (the unstudied theme word) at rates comparable to actually studied words — often around 50–80% — while correctly rejecting unrelated new words. This demonstrates a robust false memory effect.</p>
+
+            <h4 className="text-text-primary mt-4">Why it occurs:</h4>
+            <p>Studying a list of semantically related words (e.g., bed, rest, awake...) activates the shared associative network, including the unstudied critical lure ("sleep"). During recognition, this residual activation makes the lure feel familiar, creating a compelling but false sense of having seen it before.</p>
+
+            <p className="mt-4 text-xs italic">Roediger, H. L., &amp; McDermott, K. B. (1995). Creating false memories. <em>Journal of Experimental Psychology: Learning, Memory, and Cognition, 21</em>(4), 803–814.</p>
+          </div>
         </div>
       </ExperimentWrapper>
     );

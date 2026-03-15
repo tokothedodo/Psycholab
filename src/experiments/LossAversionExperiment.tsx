@@ -48,7 +48,7 @@ const TRIALS: Trial[] = [
 ];
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('loss-aversion'),
+  ...getDefaultConfig('loss-aversion-task'),
   trials: 20,
 } as LossAversionConfig;
 

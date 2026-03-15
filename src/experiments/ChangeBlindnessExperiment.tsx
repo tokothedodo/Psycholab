@@ -60,7 +60,7 @@ interface ChangeDescription {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('change-blindness'),
+  ...getDefaultConfig('change-detection-flicker-paradigm'),
   blankDuration: 500,
   trials: 4,
   stimulusDuration: 3000,

@@ -6,12 +6,12 @@ import { AIAssistant } from '../components/AIAssistant';
 import type { ExperimentType } from '../types';
 
 const EXPERIMENTS: { type: ExperimentType; name: string }[] = [
-  { type: 'muller-lyer', name: 'Müller-Lyer Illusion' },
-  { type: 'stroop', name: 'Stroop Test' },
-  { type: 'anchoring', name: 'Anchoring Bias' },
-  { type: 'ultimatum', name: 'Ultimatum Game' },
-  { type: 'digit-span', name: 'Digit Span' },
-  { type: 'ponzo', name: 'Ponzo Illusion' },
+  { type: 'muller-lyer-illusion', name: 'Müller-Lyer Illusion' },
+  { type: 'stroop-color-word-interference-task', name: 'Stroop Color-Word Interference Task' },
+  { type: 'anchoring-and-adjustment-heuristic-task', name: 'Anchoring and Adjustment Heuristic Task' },
+  { type: 'ultimatum-game', name: 'Ultimatum Game' },
+  { type: 'digit-span-task', name: 'Digit Span Task' },
+  { type: 'ponzo-illusion', name: 'Ponzo Illusion' },
 ];
 
 export function RoomBuilderPage() {
@@ -33,7 +33,7 @@ export function RoomBuilderPage() {
 
   const handleCreateRoom = async () => {
     if (selectedExperiments.length === 0) return;
-    
+
     setLoading(true);
     try {
       const user = await getUser();
@@ -60,29 +60,29 @@ export function RoomBuilderPage() {
   if (createdRoom) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">✓</span>
+        <div className="max-w-md w-full bg-white rounded border border-border p-8 text-center">
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl text-success font-bold">✓</span>
           </div>
           <h2 className="text-2xl font-bold text-navy-900 mb-2">
             {t('roomBuilder.roomCreated')}
           </h2>
           <p className="text-gray-600 mb-6">{t('roomBuilder.yourRoomCode')}</p>
-          
-          <div className="bg-navy-900 text-white text-4xl font-mono py-4 rounded-lg mb-6">
+
+          <div className="bg-surface border border-border text-primary text-4xl font-mono py-4 rounded mb-6">
             {createdRoom.code}
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={copyCode}
-              className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 btn-outline"
             >
               {t('roomBuilder.copyCode')}
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex-1 bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 transition-colors"
+              className="flex-1 btn-primary"
             >
               {t('dashboard.title')}
             </button>
@@ -93,32 +93,32 @@ export function RoomBuilderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-navy-900 text-white py-4">
-        <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-surface flex flex-col">
+      <header className="bg-primary text-white py-4 border-b border-navy-800">
+        <div className="academic-container">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-white hover:text-gray-200"
+            className="text-white hover:text-gray-200 transition-colors"
           >
             ← {t('common.back')}
           </button>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="academic-container py-8 max-w-4xl flex-1">
         {showAI && (
           <div className="mb-8">
-            <AIAssistant 
-              currentExperiments={selectedExperiments} 
+            <AIAssistant
+              currentExperiments={selectedExperiments}
               onClose={() => setShowAI(false)}
             />
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-navy-900 mb-6">
+        <div className="bg-white rounded border border-border p-8">
+          <h2 className="mb-6">
             {t('roomBuilder.title')}
-          </h1>
+          </h2>
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -129,7 +129,7 @@ export function RoomBuilderPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="My Experiment"
-              className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
+              className="w-full p-3 border border-border text-base rounded focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
 
@@ -140,7 +140,7 @@ export function RoomBuilderPage() {
               </label>
               <button
                 onClick={() => setShowAI(!showAI)}
-                className="text-teal-600 hover:text-teal-700 text-sm"
+                className="text-secondary hover:text-teal-700 font-medium transition-colors"
               >
                 {showAI ? 'Hide AI' : 'Get AI Help'}
               </button>
@@ -150,11 +150,10 @@ export function RoomBuilderPage() {
                 <button
                   key={exp.type}
                   onClick={() => toggleExperiment(exp.type)}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    selectedExperiments.includes(exp.type)
-                      ? 'border-teal-500 bg-teal-50'
-                      : 'border-gray-200 hover:border-teal-300'
-                  }`}
+                  className={`p-4 rounded border-2 text-left transition-all ${selectedExperiments.includes(exp.type)
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border hover:border-primary/50'
+                    }`}
                 >
                   <span className="font-medium">{exp.name}</span>
                 </button>
@@ -165,7 +164,7 @@ export function RoomBuilderPage() {
           <button
             onClick={handleCreateRoom}
             disabled={loading || selectedExperiments.length === 0}
-            className="w-full bg-teal-600 text-white py-4 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg"
+            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-lg"
           >
             {loading ? t('common.loading') : t('roomBuilder.openRoom')}
           </button>

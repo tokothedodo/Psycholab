@@ -50,7 +50,7 @@ const SCENARIOS: Scenario[] = [
 ];
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('framing'),
+  ...getDefaultConfig('attribute-framing-effect-paradigm'),
   trials: 6,
 } as FramingConfig;
 

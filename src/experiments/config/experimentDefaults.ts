@@ -85,7 +85,7 @@ export const UNIVERSAL_VARIABLES: Record<string, unknown> = {
 };
 
 export const EXPERIMENT_SPECIFIC_VARIABLES: Record<string, Record<string, unknown>> = {
-  stroop: {
+  'stroop-color-word-interference-task': {
     congruentRatio: {
       id: 'congruentRatio',
       labelKey: 'config.stroop.congruentRatio',
@@ -130,7 +130,7 @@ export const EXPERIMENT_SPECIFIC_VARIABLES: Record<string, Record<string, unknow
       default: 'keyboard',
     },
   },
-  motionAftereffect: {
+  'motion-aftereffect-paradigm': {
     adaptationDuration: {
       id: 'adaptationDuration',
       labelKey: 'config.motionAftereffect.adaptationDuration',
@@ -151,7 +151,7 @@ export const EXPERIMENT_SPECIFIC_VARIABLES: Record<string, Record<string, unknow
       default: 'vertical',
     },
   },
-  hollowFace: {
+  'hollow-face-illusion': {
     exposureDuration: {
       id: 'exposureDuration',
       labelKey: 'config.hollowFace.exposureDuration',

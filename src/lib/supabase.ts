@@ -30,6 +30,7 @@ export interface Result {
   correct_answer: string;
   language: string;
   timestamp: string;
+  trial_data?: any; // Added to support rich trial-by-trial behavior tracking
 }
 
 export async function signIn(email: string, password: string) {

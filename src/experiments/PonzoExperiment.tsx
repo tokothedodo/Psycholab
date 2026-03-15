@@ -44,7 +44,7 @@ interface Stimulus {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('ponzo'),
+  ...getDefaultConfig('ponzo-illusion'),
   topBarLength: 200,
   bottomBarLength: 200,
   lineConvergence: 150,

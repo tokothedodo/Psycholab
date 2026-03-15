@@ -30,7 +30,7 @@ interface InattentionalProps {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('inattentional'),
+  ...getDefaultConfig('inattentional-blindness-paradigm'),
   trials: 1,
   stimulusDuration: 20000,
 } as InattentionalConfig;

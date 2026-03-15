@@ -33,7 +33,7 @@ interface TrustProps {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('trust'),
+  ...getDefaultConfig('investment-game'),
   trials: 10,
   initialAmount: 100,
   multiplier: 3,

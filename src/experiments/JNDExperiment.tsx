@@ -45,7 +45,7 @@ interface Trial {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('jnd'),
+  ...getDefaultConfig('difference-threshold-staircase-paradigm'),
   stimulusType: 'length',
   initialDifference: 50,
   stepSize: 10,

@@ -33,7 +33,7 @@ const SCENARIOS = [
   { id: 'project', invested: 1000, costToFinish: 500, value: 300 },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('sunk-cost'), trials: 6 } as SunkCostConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('sunk-cost-effect-paradigm'), trials: 6 } as SunkCostConfig;
 
 export function SunkCostExperiment({ experiment, onComplete, participantId, roomId, config = {} }: SunkCostProps) {
   const { t, language } = useLanguage();

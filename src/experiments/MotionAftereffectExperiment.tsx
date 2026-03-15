@@ -43,7 +43,7 @@ interface Trial {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('motionAftereffect'),
+  ...getDefaultConfig('motion-aftereffect-paradigm'),
   trials: 20,
   adaptationDuration: 30000,
   testDirection: 'vertical',

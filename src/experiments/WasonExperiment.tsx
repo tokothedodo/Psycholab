@@ -32,7 +32,7 @@ const SCENARIOS = [
   { rule: 'if consonant then odd', cards: ['B', '2', '5', '9'], correct: ['B', '5', '9'] },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('wason'), trials: 4 } as WasonConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('wason-selection-task'), trials: 4 } as WasonConfig;
 
 export function WasonExperiment({ experiment, onComplete, participantId, roomId, config = {} }: WasonProps) {
   const { t, language } = useLanguage();

@@ -32,7 +32,7 @@ const SCENARIOS = [
   { id: 'war', pre: 'war_pre', outcome: 'outbreak', knewLikelihood: 15 },
 ];
 
-const DEFAULT_CONFIG = { ...getDefaultConfig('hindsight'), trials: 5 } as HindsightConfig;
+const DEFAULT_CONFIG = { ...getDefaultConfig('hindsight-bias-paradigm'), trials: 5 } as HindsightConfig;
 
 export function HindsightExperiment({ experiment, onComplete, participantId, roomId, config = {} }: HindsightProps) {
   const { t, language } = useLanguage();

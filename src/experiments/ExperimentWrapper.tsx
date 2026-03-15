@@ -1,5 +1,5 @@
-import { useLanguage } from '../../context/LanguageContext';
-import type { Experiment } from '../../data/experiments';
+import { useLanguage } from '../context/LanguageContext';
+import type { Experiment } from '../data/experiments';
 
 export interface TrialData {
   trialNumber: number;
@@ -33,15 +33,15 @@ export function ExperimentWrapper({ experiment, children }: ExperimentWrapperPro
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-navy-900 text-white py-3 px-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="font-semibold">{t(experiment.nameKey) || experiment.name}</h1>
-          <span className="text-sm text-teal-400">{t('citation')}: {experiment.citation}, {experiment.year}</span>
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="bg-primary text-white py-4">
+        <div className="academic-container flex justify-between items-center">
+          <h2 className="mb-0 text-white leading-none">{t(experiment.nameKey) || experiment.name}</h2>
+          <span className="citation text-white/80">{t('citation')}: {experiment.citation}, {experiment.year}</span>
         </div>
       </header>
-      
-      <main className="max-w-4xl mx-auto p-6">
+
+      <main className="academic-container py-8 flex-1">
         {children}
       </main>
     </div>

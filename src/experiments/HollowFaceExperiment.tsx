@@ -42,7 +42,7 @@ interface Trial {
 }
 
 const DEFAULT_CONFIG = {
-  ...getDefaultConfig('hollowFace'),
+  ...getDefaultConfig('hollow-face-illusion'),
   trials: 16,
   exposureDuration: 5000,
 } as HollowFaceConfig;

@@ -1,23 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import type { Experiment } from '../data/experiments';
-import type { TrialData } from './ExperimentWrapper';
+import { ExperimentWrapper } from './ExperimentWrapper';
+import { useExperiment } from '../hooks/useExperiment';
+import { useTimer } from '../hooks/useTimer';
+import { useResponseCapture } from '../hooks/useResponseCapture';
+import { randomInt } from '../lib/random';
 
 interface ReactionTimeProps {
   experiment: Experiment;
-  onComplete: (results: {
-    experimentName: string;
-    participantId: string;
-    roomId: string;
-    language: string;
-    timestamp: string;
-    totalTrials: number;
-    responseTimeMs: number;
-    accuracy: number;
-    answer: string | number | boolean;
-    correctAnswer: string | number | boolean;
-    trialData: TrialData[];
-  }) => void;
+  onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
 }
@@ -27,283 +19,283 @@ type TestType = 'simple' | 'choice';
 const SIMPLE_TRIALS = 40;
 const CHOICE_TRIALS = 40;
 const STIMULI = ['▲', '●', '■'];
+const KEYS = ['1', '2', '3'];
 
 export function ReactionTimeExperiment({ experiment, onComplete, participantId, roomId }: ReactionTimeProps) {
   const { t, language } = useLanguage();
-  const [phase, setPhase] = useState<'instruction' | 'simple' | 'choice' | 'complete'>('instruction');
   const [currentTest, setCurrentTest] = useState<TestType>('simple');
-  const [trialIndex, setTrialIndex] = useState(0);
   const [stimulus, setStimulus] = useState<string | null>(null);
   const [showStimulus, setShowStimulus] = useState(false);
   const [waiting, setWaiting] = useState(false);
-  const [startTime, setStartTime] = useState(0);
-  const [experimentStartTime, setExperimentStartTime] = useState(0);
-  const [trialData, setTrialData] = useState<TrialData[]>([]);
-  const [results, setResults] = useState<{ simple: number[]; choice: number[] }>({ simple: [], choice: [] });
+  const [resultsRaw, setResultsRaw] = useState<{ simple: number[]; choice: number[] }>({ simple: [], choice: [] });
   const timeoutRef = useRef<number | null>(null);
 
-  const getRandomDelay = () => 1000 + Math.random() * 2000;
+  const {
+    phase,
+    setPhase,
+    trialIndex,
+    trialData,
+    recordTrial,
+    startExperiment,
+    advanceTrial,
+    finishExperiment,
+  } = useExperiment({ experiment, participantId, roomId, language, onComplete });
 
-  const startTrial = useCallback(() => {
+  const { startTimer, getResponseTime, clearTimer } = useTimer();
+
+  const getRandomDelay = () => randomInt(500, 2000); // 500-2000ms foreperiod
+
+  const startNextTrial = useCallback(() => {
     setWaiting(true);
     const delay = getRandomDelay();
 
     timeoutRef.current = window.setTimeout(() => {
       setWaiting(false);
       setShowStimulus(true);
-      setStartTime(performance.now());
+      startTimer();
 
       if (currentTest === 'simple') {
         setStimulus('●');
       } else {
-        setStimulus(STIMULI[Math.floor(Math.random() * STIMULI.length)]);
+        setStimulus(STIMULI[randomInt(0, STIMULI.length - 1)]);
       }
     }, delay);
-  }, [currentTest]);
+  }, [currentTest, startTimer]);
 
   useEffect(() => {
-    if (phase === 'simple' || phase === 'choice') {
-      setExperimentStartTime(performance.now());
-      startTrial();
+    if (phase === 'experiment') {
+      startNextTrial();
     }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [phase]);
+  }, [phase, trialIndex, currentTest, startNextTrial]);
 
-  useEffect(() => {
-    if (phase === 'simple' && trialIndex > 0) {
-      startTrial();
-    }
-  }, [trialIndex, phase]);
+  const handleResponseInternal = useCallback((response: string) => {
+    if (!showStimulus || !stimulus || phase !== 'experiment') return;
 
-  useEffect(() => {
-    if (phase === 'choice' && trialIndex > 0 && trialIndex < CHOICE_TRIALS) {
-      startTrial();
-    }
-  }, [trialIndex, phase]);
+    const rt = getResponseTime() || 0;
 
-  const handleResponse = (response: string) => {
-    if (!showStimulus || !stimulus) return;
-
-    const endTime = performance.now();
-    const responseTime = Math.round(endTime - startTime);
-
-    if (currentTest === 'choice') {
-      // In choice RT, we track correctness via stimulus comparison
-    }
-
-    const trial: TrialData = {
+    recordTrial({
       trialNumber: trialIndex + 1,
-      responseTimeMs: responseTime,
+      responseTimeMs: rt,
       answer: response,
       correctAnswer: stimulus,
       stimulus,
-    };
+      // store the test type inside stimulus field as well
+      condition: currentTest
+    } as any);
 
-    setTrialData(prev => [...prev, trial]);
-    setResults(prev => ({
+    setResultsRaw(prev => ({
       ...prev,
-      [currentTest]: [...prev[currentTest], responseTime],
+      [currentTest]: [...prev[currentTest], rt]
     }));
 
     setShowStimulus(false);
     setStimulus(null);
+    clearTimer();
 
     const totalTrials = currentTest === 'simple' ? SIMPLE_TRIALS : CHOICE_TRIALS;
 
     if (trialIndex < totalTrials - 1) {
-      setTrialIndex(prev => prev + 1);
+      advanceTrial(false, totalTrials);
     } else if (currentTest === 'simple') {
       setCurrentTest('choice');
-      setTrialIndex(0);
-      setTimeout(() => startTrial(), 1000);
+      setPhase('instruction'); // Brief pause between phases
     } else {
-      completeExperiment();
-    }
-  };
-
-  const handleKeyPress = useCallback((e: KeyboardEvent) => {
-    if (!showStimulus) return;
-
-    if (currentTest === 'simple') {
-      if (e.key === ' ' || e.key === 'Enter') {
-        handleResponse('any');
-      }
-    } else {
-      const keyMap: Record<string, string> = {
-        '1': '▲', '2': '●', '3': '■',
-        'ArrowLeft': '▲', 'ArrowDown': '●', 'ArrowRight': '■',
+      // Calculate results and finish
+      const removeOutliers = (arr: number[]) => {
+        const valid = arr.filter(rt => rt >= 100);
+        if (valid.length === 0) return [];
+        const mean = valid.reduce((a, b) => a + b, 0) / valid.length;
+        const sd = Math.sqrt(valid.reduce((sq, val) => sq + Math.pow(val - mean, 2), 0) / valid.length);
+        return valid.filter(rt => rt <= mean + 2 * sd);
       };
-      if (keyMap[e.key]) {
-        handleResponse(keyMap[e.key]);
-      }
+
+      const finalSimpleRaw = [...resultsRaw.simple];
+      const finalChoiceRaw = [...resultsRaw.choice];
+
+      // Since we just recorded the last choice trial, it's not in resultsRaw yet
+      finalChoiceRaw.push(rt);
+
+      const cleanSimple = removeOutliers(finalSimpleRaw);
+      const cleanChoice = removeOutliers(finalChoiceRaw);
+
+      const simpleMean = cleanSimple.length > 0 ? cleanSimple.reduce((a, b) => a + b, 0) / cleanSimple.length : 0;
+      const choiceMean = cleanChoice.length > 0 ? cleanChoice.reduce((a, b) => a + b, 0) / cleanChoice.length : 0;
+
+      // Calculate full accuracy (only choice trials matter for accuracy)
+      const choiceTrials = trialData.filter((t: any) => t.condition === 'choice');
+      // Adding current
+      choiceTrials.push({ answer: response, correctAnswer: stimulus } as any);
+
+      const correctChoice = choiceTrials.filter(t => {
+        const mapped = STIMULI[KEYS.indexOf(t.answer as string)];
+        return mapped === t.correctAnswer;
+      }).length;
+
+      const accuracy = choiceTrials.length > 0 ? (correctChoice / choiceTrials.length) * 100 : 100;
+
+      finishExperiment(Math.round(choiceMean - simpleMean), accuracy);
     }
-  }, [showStimulus, currentTest, stimulus]);
+  }, [
+    showStimulus, stimulus, phase, getResponseTime, recordTrial, trialIndex, currentTest,
+    resultsRaw, clearTimer, advanceTrial, setPhase, trialData, finishExperiment
+  ]);
 
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleKeyPress]);
+  useResponseCapture({
+    validKeys: currentTest === 'simple' ? [' ', 'enter'] : KEYS,
+    onResponse: (key) => handleResponseInternal(key),
+    disabled: !showStimulus || phase !== 'experiment'
+  });
 
-  const completeExperiment = () => {
-    setPhase('complete');
-    const endTime = performance.now();
-    const totalTime = Math.round(endTime - experimentStartTime);
-
-    const cleanSimple = removeOutliers(results.simple);
-    const cleanChoice = removeOutliers(results.choice);
-    const simpleMean = cleanSimple.reduce((a, b) => a + b, 0) / cleanSimple.length;
-    const choiceMean = cleanChoice.reduce((a, b) => a + b, 0) / cleanChoice.length;
-
-    onComplete({
-      experimentName: experiment.id,
-      participantId,
-      roomId,
-      language,
-      timestamp: new Date().toISOString(),
-      totalTrials: SIMPLE_TRIALS + CHOICE_TRIALS,
-      responseTimeMs: totalTime,
-      accuracy: 100,
-      answer: choiceMean - simpleMean,
-      correctAnswer: 'choice_minus_simple',
-      trialData,
-    });
-  };
-
-  const removeOutliers = (arr: number[]): number[] => {
-    if (arr.length < 3) return arr;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const q1 = sorted[Math.floor(sorted.length * 0.25)];
-    const q3 = sorted[Math.floor(sorted.length * 0.75)];
-    const iqr = q3 - q1;
-    const lower = q1 - 2 * iqr;
-    const upper = q3 + 2 * iqr;
-    return arr.filter(x => x >= lower && x <= upper);
-  };
-
-  if (phase === 'instruction') {
+  if (phase === 'instruction' && currentTest === 'simple') {
     return (
-      <div className="max-w-2xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 mb-6">{t('exp.reactionTime.name')}</h2>
-
-        <div className="space-y-6 mb-8">
-          <div className="bg-slate-50 border-l-4 border-teal-500 p-5 rounded-r-lg shadow-sm">
-            <h3 className="font-bold text-slate-800 text-lg mb-2">{t('exp.reactionTime.simple')}</h3>
-            <p className="text-slate-600 leading-relaxed text-md">{t('exp.reactionTime.simpleDesc')}</p>
+      <ExperimentWrapper experiment={experiment}>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
+          <h2 className="mb-6">{t('exp.reactionTime.name')}</h2>
+          <div className="experiment-instruction">
+            <p className="mb-4"><strong>{t('exp.reactionTime.simple')}</strong> ({SIMPLE_TRIALS} trials)</p>
+            <p>{t('exp.reactionTime.simpleDesc')}</p>
+            <p className="mt-4 text-sm text-text-muted">Press <strong>SPACEBAR</strong> as quickly as possible when the shape appears.</p>
           </div>
-          <div className="bg-slate-50 border-l-4 border-purple-500 p-5 rounded-r-lg shadow-sm">
-            <h3 className="font-bold text-slate-800 text-lg mb-2">{t('exp.reactionTime.choice')}</h3>
-            <p className="text-slate-600 leading-relaxed text-md mb-3">{t('exp.reactionTime.choiceDesc')}</p>
-            <div className="bg-white px-4 py-2 rounded-md border border-slate-100 shadow-sm inline-block">
-              <p className="text-xs font-semibold text-slate-500 tracking-wide uppercase">{t('exp.reactionTime.keys')}</p>
+          <button onClick={() => startExperiment('experiment')} className="btn-primary w-full sm:w-auto mt-8">
+            {t('common.start')}
+          </button>
+        </div>
+      </ExperimentWrapper>
+    );
+  }
+
+  if (phase === 'instruction' && currentTest === 'choice') {
+    return (
+      <ExperimentWrapper experiment={experiment}>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto text-center">
+          <h2 className="mb-6">Phase 2: {t('exp.reactionTime.choice')}</h2>
+          <div className="experiment-instruction text-left mb-8">
+            <p>{t('exp.reactionTime.choiceDesc')}</p>
+            <div className="flex justify-around items-center mt-6">
+              <div className="flex flex-col items-center"><span className="text-4xl mb-2">▲</span><span className="kb-key">1</span></div>
+              <div className="flex flex-col items-center"><span className="text-4xl mb-2">●</span><span className="kb-key">2</span></div>
+              <div className="flex flex-col items-center"><span className="text-4xl mb-2">■</span><span className="kb-key">3</span></div>
             </div>
           </div>
+          <button onClick={() => startExperiment('experiment')} className="btn-primary w-full sm:w-auto">
+            {t('common.start')} Phase 2
+          </button>
         </div>
-
-        <p className="text-sm font-medium text-slate-400 mb-8 flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-          {t('citation')}: {experiment.citation}, {experiment.year}
-        </p>
-
-        <button
-          onClick={() => setPhase('simple')}
-          className="group relative w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold flex tracking-wide items-center justify-center gap-3 px-8 py-4 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-        >
-          {t('common.start')}
-          <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-        </button>
-      </div>
+      </ExperimentWrapper>
     );
   }
 
   if (phase === 'complete') {
-    const cleanSimple = removeOutliers(results.simple);
-    const cleanChoice = removeOutliers(results.choice);
-    const simpleMean = cleanSimple.reduce((a, b) => a + b, 0) / cleanSimple.length;
-    const simpleSD = Math.sqrt(cleanSimple.reduce((s, x) => s + Math.pow(x - simpleMean, 2), 0) / cleanSimple.length);
-    const choiceMean = cleanChoice.reduce((a, b) => a + b, 0) / cleanChoice.length;
-    const choiceSD = Math.sqrt(cleanChoice.reduce((s, x) => s + Math.pow(x - choiceMean, 2), 0) / cleanChoice.length);
+    const removeOutliers = (arr: number[]) => {
+      const valid = arr.filter(rt => rt >= 100);
+      if (valid.length === 0) return [];
+      const mean = valid.reduce((a, b) => a + b, 0) / valid.length;
+      const sd = Math.sqrt(valid.reduce((sq, val) => sq + Math.pow(val - mean, 2), 0) / valid.length);
+      return valid.filter(rt => rt <= mean + 2 * sd);
+    };
+
+    const cleanSimple = removeOutliers(resultsRaw.simple);
+    const cleanChoice = removeOutliers(resultsRaw.choice);
+
+    const simpleMean = cleanSimple.length > 0 ? cleanSimple.reduce((a, b) => a + b, 0) / cleanSimple.length : 0;
+    const choiceMean = cleanChoice.length > 0 ? cleanChoice.reduce((a, b) => a + b, 0) / cleanChoice.length : 0;
 
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <h2 className="text-2xl font-bold text-navy-900 mb-4">{t('common.debrief.title')}</h2>
+      <ExperimentWrapper experiment={experiment}>
+        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
+          <h2 className="mb-6">{t('common.debrief.title')}</h2>
 
-        <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-4">
-          <p className="text-teal-800 font-medium">{t('common.debrief.thankYou')}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <p className="text-3xl font-bold text-navy-900">{Math.round(simpleMean)}ms</p>
-            <p className="text-sm text-gray-600">{t('exp.reactionTime.simple')} ±{Math.round(simpleSD)}ms</p>
+          <div className="bg-success/10 border-l-4 border-success p-4 mb-6">
+            <p className="text-success-800 font-medium">{t('common.debrief.thankYou')}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <p className="text-3xl font-bold text-navy-900">{Math.round(choiceMean)}ms</p>
-            <p className="text-sm text-gray-600">{t('exp.reactionTime.choice')} ±{Math.round(choiceSD)}ms</p>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-surface p-6 rounded border border-border text-center">
+              <p className="text-3xl font-bold text-primary mb-1">{Math.round(simpleMean)}ms</p>
+              <p className="text-sm text-text-secondary">{t('exp.reactionTime.simple')} RT</p>
+            </div>
+            <div className="bg-surface p-6 rounded border border-border text-center">
+              <p className="text-3xl font-bold text-primary mb-1">{Math.round(choiceMean)}ms</p>
+              <p className="text-sm text-text-secondary">{t('exp.reactionTime.choice')} RT</p>
+            </div>
+          </div>
+
+          <div className="bg-info/10 border border-info/20 p-6 rounded mb-8">
+            <h3 className="text-info-800 mb-2">{t('exp.reactionTime.decision')}: {Math.round(choiceMean - simpleMean)}ms</h3>
+            <p className="text-sm text-info-700">This represents the time taken specifically to identify the stimulus and select the correct response, isolated from basic motor and visual processing time.</p>
+          </div>
+
+          <div className="prose prose-sm text-text-secondary">
+            <h4 className="text-text-primary">What this experiment measures:</h4>
+            <p>{t('exp.reactionTime.debrief')}</p>
+
+            <h4 className="text-text-primary mt-4">Typical Findings:</h4>
+            <p>Choice reaction time is systematically longer than simple reaction time, a principle known as Donders' subtraction method. Each additional stage of mental processing (e.g., choice, discrimination) adds measurable time to the response.</p>
+
+            <h4 className="text-text-primary mt-4">Why it occurs:</h4>
+            <p>Simple RT requires only detection of a stimulus, while choice RT adds a discrimination stage (identifying which stimulus appeared) and a response selection stage (mapping the stimulus to the correct key). Each additional processing stage contributes to the overall response latency.</p>
+
+            <p className="mt-4 text-xs italic">Donders, F. C. (1868/1969). On the speed of mental processes. <em>Acta Psychologica, 30</em>, 412–431.</p>
           </div>
         </div>
-
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4">
-          <p className="text-amber-800 font-medium">
-            {t('exp.reactionTime.decision')}: {Math.round(choiceMean - simpleMean)}ms
-          </p>
-        </div>
-
-        <p className="text-gray-600 mb-4">{t('exp.reactionTime.debrief')}</p>
-        <p className="text-sm text-gray-500 mb-4">{t('citation')}: {experiment.citation}, {experiment.year}</p>
-      </div>
+      </ExperimentWrapper>
     );
   }
 
   const totalTrials = currentTest === 'simple' ? SIMPLE_TRIALS : CHOICE_TRIALS;
 
   return (
-    <div className="max-w-3xl mx-auto p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 min-h-[500px] flex flex-col relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white -z-10"></div>
+    <ExperimentWrapper experiment={experiment}>
+      <div className="max-w-2xl mx-auto py-8">
 
-      <div className="flex justify-between items-center mb-10 w-full px-4 pt-4">
-        <div className="inline-flex items-center justify-center px-4 py-1.5 bg-teal-50 text-teal-700 font-medium rounded-full text-sm shadow-sm border border-teal-100 backdrop-blur-sm">
-          {currentTest === 'simple' ? t('exp.reactionTime.simple') : t('exp.reactionTime.choice')}
-          <span className="mx-2 opacity-50">|</span>
-          {trialIndex + 1} / {totalTrials}
+        <div className="mb-12">
+          <div className="h-1 bg-surface rounded overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${((trialIndex) / totalTrials) * 100}%` }}
+            />
+          </div>
+          <p className="text-xs text-text-muted text-right mt-2 uppercase tracking-wide">
+            {currentTest === 'simple' ? 'Phase 1' : 'Phase 2'} &bull; Trial {trialIndex + 1} / {totalTrials}
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded bg-surface">
+          {waiting && (
+            <p className="text-text-muted text-xl">{t('exp.reactionTime.wait')}</p>
+          )}
+          {showStimulus && stimulus && (
+            <span className="text-[8rem] leading-none text-text-primary">
+              {stimulus}
+            </span>
+          )}
         </div>
 
         {currentTest === 'choice' && (
-          <div className="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 font-semibold rounded-full text-xs shadow-sm border border-purple-100 animate-pulse">
-            Press 1, 2, or 3
+          <div className="mt-12">
+            <div className="flex justify-center gap-6">
+              {STIMULI.map((s, index) => (
+                <button
+                  key={s}
+                  onClick={() => handleResponseInternal(KEYS[index])}
+                  disabled={!showStimulus}
+                  className="w-24 h-24 rounded border-2 border-border hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 bg-white flex-shrink-0 disabled:opacity-50"
+                >
+                  <span className="text-4xl text-text-primary mb-1">{s}</span>
+                  <span className="font-mono text-text-muted text-xs uppercase px-2 py-1 bg-surface rounded">
+                    {KEYS[index]}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[300px] relative rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50">
-        {waiting && (
-          <p className="text-slate-400 text-xl font-medium tracking-wide animate-pulse">{t('exp.reactionTime.wait')}</p>
-        )}
-        {showStimulus && stimulus && (
-          <div className="transform transition-all animate-bounce-short">
-            <span className="text-[10rem] leading-none text-slate-800 drop-shadow-xl select-none" style={{ textShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-              {stimulus}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {currentTest === 'choice' && (
-        <div className="flex justify-center gap-6 mt-10">
-          {STIMULI.map((s, index) => (
-            <button
-              key={s}
-              onClick={() => handleResponse(s)}
-              disabled={!showStimulus}
-              className="group relative w-20 h-20 bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-purple-200 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50 transition-all duration-300 flex flex-col items-center justify-center disabled:opacity-50 disabled:hover:translate-y-0 text-3xl text-slate-700 disabled:cursor-not-allowed overflow-hidden"
-            >
-              <span className="z-10">{s}</span>
-              <span className="absolute bottom-1 right-2 text-xs font-bold text-slate-300 uppercase z-10 group-hover:text-purple-300 transition-colors">Key {index + 1}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    </ExperimentWrapper>
   );
 }
+
+export default ReactionTimeExperiment;
