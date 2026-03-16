@@ -17,11 +17,11 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
   const [results, setResults] = useState<{ trial: number; error: number; rt: number }[]>([]);
   const totalTrials = 6;
 
-  const referenceLength = 600; // Scaled up significantly
+  const referenceLength = 500; // Adjusted for better baseline on all screens
 
   const startTrial = useCallback(() => {
     // Randomize initial length between 200 and 800
-    setAdjustableLength(Math.floor(Math.random() * 600) + 200);
+    setAdjustableLength(Math.floor(Math.random() * 500) + 150);
     setStartTime(performance.now());
   }, []);
 
@@ -75,9 +75,9 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
 
       if (phase === 'test') {
         if (e.key === 'ArrowLeft') {
-          setAdjustableLength(prev => Math.max(100, prev - 4));
+          setAdjustableLength(prev => Math.max(50, prev - 4));
         } else if (e.key === 'ArrowRight') {
-          setAdjustableLength(prev => Math.min(1000, prev + 4));
+          setAdjustableLength(prev => Math.min(referenceLength * 2, prev + 4));
         } else if (e.key === 'Enter') {
           handleResponse();
         }
@@ -85,29 +85,29 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, handleResponse]);
+  }, [phase, handleResponse, referenceLength]);
 
   const renderLine = (length: number, inverted: boolean) => {
-    const finSize = 50; // Larger fins
+    const finSize = 35; // Responsive fin size
     const angle = 45;
     return (
-      <div className="relative flex items-center justify-center h-48" style={{ width: length + 200 }}>
+      <div className="relative flex items-center justify-center h-24 sm:h-32" style={{ width: length + 100 }}>
         {/* Main Line */}
-        <div className="h-3 bg-gray-900 rounded-full shadow-sm" style={{ width: length }}></div>
+        <div className="h-1.5 sm:h-2 bg-gray-900 rounded-full shadow-sm" style={{ width: length }}></div>
 
         {/* Left Fins */}
-        <div className="absolute left-[100px]">
-          <div className="h-3 bg-gray-900 rounded-full absolute origin-right"
+        <div className="absolute left-[50px]">
+          <div className="h-1.5 sm:h-2 bg-gray-900 rounded-full absolute origin-right"
             style={{ width: finSize, transform: `rotate(${inverted ? -angle : angle}deg)` }}></div>
-          <div className="h-3 bg-gray-900 rounded-full absolute origin-right"
+          <div className="h-1.5 sm:h-2 bg-gray-900 rounded-full absolute origin-right"
             style={{ width: finSize, transform: `rotate(${inverted ? angle : -angle}deg)` }}></div>
         </div>
 
         {/* Right Fins */}
-        <div className="absolute right-[100px]">
-          <div className="h-3 bg-gray-900 rounded-full absolute origin-left"
+        <div className="absolute right-[50px]">
+          <div className="h-1.5 sm:h-2 bg-gray-900 rounded-full absolute origin-left"
             style={{ width: finSize, transform: `rotate(${inverted ? 180 - angle : 180 + angle}deg)` }}></div>
-          <div className="h-3 bg-gray-900 rounded-full absolute origin-left"
+          <div className="h-1.5 sm:h-2 bg-gray-900 rounded-full absolute origin-left"
             style={{ width: finSize, transform: `rotate(${inverted ? 180 + angle : 180 - angle}deg)` }}></div>
         </div>
       </div>
@@ -116,17 +116,17 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
 
   if (phase === 'instruction') {
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-center bg-white rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
-        <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center text-5xl mb-10 shadow-inner">↔️</div>
-        <h1 className="text-6xl font-black text-gray-900 mb-8 tracking-tighter">Müller-Lyer Illusion</h1>
-        <p className="text-2xl text-gray-500 mb-12 max-w-2xl leading-relaxed">
+      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center bg-white rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
+        <div className="w-16 h-16 sm:w-24 sm:h-24 bg-emerald-100 text-emerald-600 rounded-2xl sm:rounded-3xl flex items-center justify-center text-3xl sm:text-5xl mb-6 sm:mb-10 shadow-inner">↔️</div>
+        <h1 className="text-3xl sm:text-6xl font-black text-gray-900 mb-6 sm:mb-8 tracking-tighter">Müller-Lyer Illusion</h1>
+        <p className="text-lg sm:text-2xl text-gray-500 mb-8 sm:mb-12 max-w-2xl leading-relaxed">
           Adjust the <span className="text-emerald-600 font-black">LOWER LINE</span> until its length perfectly matches the top line.
         </p>
         <button
           onClick={() => setPhase('test')}
-          className="px-16 py-8 bg-emerald-600 text-white rounded-[2rem] font-black text-3xl hover:bg-emerald-700 transition-all shadow-[0_20px_50px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95"
+          className="w-full sm:w-auto px-10 sm:px-16 py-6 sm:py-8 bg-emerald-600 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xl sm:text-3xl hover:bg-emerald-700 transition-all shadow-[0_20px_50px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95"
         >
-          ENTER CALIBRATION
+          START EXPERIMENT
         </button>
       </div>
     );
@@ -135,74 +135,75 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
   if (phase === 'debrief') {
     const avgError = Math.round(results.reduce((acc, r) => acc + r.error, 0) / results.length);
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-center bg-white rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
-        <h1 className="text-6xl font-black text-gray-900 mb-12 tracking-tighter">Psychophysical Data</h1>
-        <div className="bg-emerald-600 p-16 rounded-[4rem] shadow-2xl mb-12 w-full max-w-2xl text-white">
-          <p className="text-xs font-black uppercase tracking-[0.4em] mb-4 opacity-70">Mean Adjustment Error</p>
-          <p className="text-9xl font-black tabular-nums leading-none">{avgError}<span className="text-3xl ml-2 font-medium opacity-50">px</span></p>
+      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center bg-white rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
+        <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-8 sm:mb-12 tracking-tighter">Perception Results</h1>
+        <div className="bg-emerald-600 p-10 sm:p-16 rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl mb-8 sm:mb-12 w-full max-w-2xl text-white">
+          <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.4em] mb-4 opacity-70">Mean Adjustment Error</p>
+          <p className="text-6xl sm:text-9xl font-black tabular-nums leading-none">{avgError}<span className="text-2xl sm:text-3xl ml-2 font-medium opacity-50">px</span></p>
         </div>
         <button
           onClick={() => window.location.reload()}
-          className="px-12 py-6 border-4 border-gray-100 text-gray-400 rounded-[2.5rem] font-black text-xl hover:bg-gray-900 hover:text-white hover:border-black transition-all"
+          className="w-full sm:w-auto px-10 sm:px-12 py-5 sm:py-6 border-4 border-gray-100 text-gray-400 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-lg sm:text-xl hover:bg-gray-900 hover:text-white hover:border-black transition-all"
         >
-          RETEST
+          NEW SESSION
         </button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[850px] w-full max-w-7xl mx-auto p-12 bg-white rounded-[4rem] shadow-sm border border-gray-50 relative overflow-hidden">
-      <div className="absolute top-12 left-16 flex items-center gap-6">
-        <div className="px-6 py-2 bg-gray-900 rounded-full text-xs font-black text-white tracking-[0.3em] uppercase">
+    <div className="flex flex-col items-center justify-center min-h-[600px] sm:min-h-[850px] w-full max-w-7xl mx-auto p-6 sm:p-12 bg-white rounded-[2.5rem] sm:rounded-[4rem] shadow-sm border border-gray-50 relative overflow-hidden">
+      <div className="absolute top-8 sm:top-12 left-8 sm:left-16 flex items-center gap-6">
+        <div className="px-4 sm:px-6 py-1 sm:py-2 bg-gray-900 rounded-full text-[10px] sm:text-xs font-black text-white tracking-[0.3em] uppercase">
           TRIAL {trial + 1} / {totalTrials}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-24 w-full mb-16 scale-90 lg:scale-100">
-        <div className="flex flex-col items-center gap-4">
-          <span className="text-xs font-black text-gray-300 uppercase tracking-[0.4em]">Reference Protocol</span>
+      <div className="flex-1 flex flex-col items-center justify-center gap-12 sm:gap-24 w-full mb-12 sm:mb-16 overflow-x-auto">
+        <div className="flex flex-col items-center gap-2 sm:gap-4 scale-75 sm:scale-100 min-w-[600px]">
+          <span className="text-[10px] sm:text-xs font-black text-gray-300 uppercase tracking-[0.4em]">Reference Protocol</span>
           {renderLine(referenceLength, false)}
         </div>
-        <div className="flex flex-col items-center gap-4 scale-105">
-          <span className="text-xs font-black text-emerald-500 uppercase tracking-[0.4em]">Target Configuration</span>
+        <div className="flex flex-col items-center gap-2 sm:gap-4 scale-75 sm:scale-110 min-w-[600px]">
+          <span className="text-[10px] sm:text-xs font-black text-emerald-500 uppercase tracking-[0.4em]">Target Configuration</span>
           {renderLine(adjustableLength, true)}
         </div>
       </div>
 
-      <div className="w-full max-w-4xl flex flex-col items-center gap-12">
-        <div className="w-full flex items-center gap-10">
+      <div className="w-full max-w-4xl flex flex-col items-center gap-8 sm:gap-12">
+        <div className="w-full flex items-center gap-4 sm:gap-10">
           <button
-            onClick={() => setAdjustableLength(prev => Math.max(100, prev - 20))}
-            className="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center text-4xl font-black text-gray-300 hover:bg-gray-900 hover:text-white transition-all active:scale-90 shadow-inner border border-gray-100"
+            onClick={() => setAdjustableLength(prev => Math.max(50, prev - 20))}
+            className="w-12 h-12 sm:w-24 sm:h-24 bg-gray-50 rounded-xl sm:rounded-[2rem] flex items-center justify-center text-2xl sm:text-4xl font-black text-gray-300 hover:bg-gray-900 hover:text-white transition-all active:scale-90 shadow-inner border border-gray-100"
           >
             -
           </button>
           <input
             type="range"
-            min="100"
-            max="1000"
+            min="50"
+            max={referenceLength * 2}
             value={adjustableLength}
             onChange={(e) => setAdjustableLength(parseInt(e.target.value))}
-            className="flex-1 h-6 bg-gray-100 rounded-full appearance-none cursor-pointer accent-emerald-600 scale-y-150"
+            className="flex-1 h-3 sm:h-6 bg-gray-100 rounded-full appearance-none cursor-pointer accent-emerald-600 sm:scale-y-150"
           />
           <button
-            onClick={() => setAdjustableLength(prev => Math.min(1000, prev + 20))}
-            className="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center text-4xl font-black text-gray-300 hover:bg-gray-900 hover:text-white transition-all active:scale-90 shadow-inner border border-gray-100"
+            onClick={() => setAdjustableLength(prev => Math.min(referenceLength * 2, prev + 20))}
+            className="w-12 h-12 sm:w-24 sm:h-24 bg-gray-50 rounded-xl sm:rounded-[2rem] flex items-center justify-center text-2xl sm:text-4xl font-black text-gray-300 hover:bg-gray-900 hover:text-white transition-all active:scale-90 shadow-inner border border-gray-100"
           >
             +
           </button>
         </div>
 
-        <div className="w-full flex flex-col items-center gap-6">
+        <div className="w-full flex flex-col items-center gap-4 sm:gap-6">
           <button
             onClick={handleResponse}
-            className="w-full max-w-xl py-10 bg-emerald-600 text-white rounded-[2.5rem] font-black text-3xl hover:bg-emerald-700 transition-all shadow-2xl hover:scale-105 active:scale-95"
+            className="w-full max-w-xl py-6 sm:py-10 bg-emerald-600 text-white rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-xl sm:text-3xl hover:bg-emerald-700 transition-all shadow-2xl hover:scale-105 active:scale-95"
           >
             CONFIRM MATCH
           </button>
-          <p className="text-xs font-black text-gray-300 uppercase tracking-[0.4em]">
-            Fine-tune with <kbd className="bg-gray-100 text-gray-900 px-3 py-1 rounded-lg mx-1">← →</kbd> and confirm with <kbd className="bg-gray-100 text-gray-900 px-3 py-1 rounded-lg mx-1">ENTER</kbd>
+          <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] sm:tracking-[0.4em] text-center">
+            <span className="hidden sm:inline">Use <kbd className="bg-gray-100 text-gray-900 px-3 py-1 rounded-lg mx-1 font-mono uppercase">← →</kbd> and confirm with <kbd className="bg-gray-100 text-gray-900 px-3 py-1 rounded-lg mx-1 font-mono uppercase">ENTER</kbd></span>
+            <span className="sm:hidden">Adjust and tap Confirm</span>
           </p>
         </div>
       </div>

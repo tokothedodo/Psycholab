@@ -270,9 +270,8 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  padding: 1rem;
   gap: 2rem;
 }
 
@@ -283,7 +282,7 @@ textarea:focus-visible {
   justify-content: center;
   min-height: 500px;
   width: 100%;
-  padding: 4rem;
+  padding: 1rem;
 }
 
 .experiment-controls {
