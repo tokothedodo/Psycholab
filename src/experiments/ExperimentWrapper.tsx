@@ -30,20 +30,17 @@ interface ExperimentWrapperProps {
 }
 
 export function ExperimentWrapper({ experiment, children }: ExperimentWrapperProps) {
-  const { t } = useLanguage();
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-primary text-white py-4">
-        <div className="academic-container flex justify-between items-center">
-          <h2 className="mb-0 text-white leading-none">{t(experiment.nameKey) || experiment.name}</h2>
-          <span className="citation text-white/80">{t('citation')}: {experiment.citation}, {experiment.year}</span>
-        </div>
-      </header>
-
-      <main className="academic-container py-8 flex-1">
+    <div className="w-full min-h-[100vh] flex flex-col items-center justify-center p-4 bg-gray-50/50">
+      <div className="w-full max-w-6xl flex flex-col items-center">
         {children}
-      </main>
+      </div>
+
+      <div className="mt-16 text-center opacity-30">
+        <span className="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400">
+          Paradigm: {experiment.citation}
+        </span>
+      </div>
     </div>
   );
 }

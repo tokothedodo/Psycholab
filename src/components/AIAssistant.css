@@ -1,0 +1,105 @@
+.ai-container {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.ai-header {
+    padding: 12px 16px;
+    background: var(--navy);
+    color: var(--white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ai-header h3 {
+    color: var(--white);
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.ai-messages {
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--surface);
+    min-height: 200px;
+}
+
+.ai-msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border-radius: 12px;
+}
+
+.ai-msg-user {
+    align-self: flex-end;
+    background: var(--navy);
+    color: var(--white);
+    border-bottom-right-radius: 2px;
+}
+
+.ai-msg-bot {
+    align-self: flex-start;
+    background: var(--white);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-top-left-radius: 2px;
+    box-shadow: var(--shadow-sm);
+}
+
+.ai-input-area {
+    padding: 12px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+}
+
+.ai-input {
+    flex-grow: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.ai-input:focus {
+    border-color: var(--teal);
+}
+
+.ai-send {
+    background: var(--teal);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 0 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ai-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ai-thinking {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 4px;
+}

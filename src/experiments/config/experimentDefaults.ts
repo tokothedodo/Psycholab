@@ -130,36 +130,24 @@ export const EXPERIMENT_SPECIFIC_VARIABLES: Record<string, Record<string, unknow
       default: 'keyboard',
     },
   },
-  'motion-aftereffect-paradigm': {
-    adaptationDuration: {
-      id: 'adaptationDuration',
-      labelKey: 'config.motionAftereffect.adaptationDuration',
+  'muller-lyer-illusion': {
+    finAngle: {
+      id: 'finAngle',
+      labelKey: 'config.mullerLyer.finAngle',
       type: 'number',
-      default: 30000,
-      min: 10000,
-      max: 60000,
-      unit: 'ms',
+      default: 45,
+      min: 15,
+      max: 75,
+      unit: '°',
     },
-    testDirection: {
-      id: 'testDirection',
-      labelKey: 'config.motionAftereffect.testDirection',
-      type: 'select',
-      options: [
-        { value: 'vertical', labelKey: 'config.motionAftereffect.vertical' },
-        { value: 'horizontal', labelKey: 'config.motionAftereffect.horizontal' },
-      ],
-      default: 'vertical',
-    },
-  },
-  'hollow-face-illusion': {
-    exposureDuration: {
-      id: 'exposureDuration',
-      labelKey: 'config.hollowFace.exposureDuration',
+    finLength: {
+      id: 'finLength',
+      labelKey: 'config.mullerLyer.finLength',
       type: 'number',
-      default: 5000,
-      min: 2000,
-      max: 15000,
-      unit: 'ms',
+      default: 40,
+      min: 10,
+      max: 100,
+      unit: 'px',
     },
   },
 };

@@ -1,0 +1,161 @@
+.builder-layout {
+    display: flex;
+    height: calc(100vh - var(--nav-height));
+    margin-top: var(--nav-height);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.builder-catalog {
+    flex: 1;
+    width: 60%;
+    padding: 2.5rem;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+}
+
+.builder-config {
+    width: 40%;
+    background: var(--white);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Category Filters */
+.category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 2rem;
+}
+
+.filter-pill {
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--white);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-pill:hover {
+    background: var(--surface);
+    border-color: var(--border-strong);
+}
+
+.filter-pill.active {
+    background: var(--navy);
+    color: var(--white);
+    border-color: var(--navy);
+}
+
+/* Catalog Grid */
+.catalog-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.select-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    text-align: left;
+}
+
+.select-card:hover {
+    border-color: var(--teal-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.select-card.active {
+    border-color: var(--teal);
+    background: var(--teal-muted);
+    box-shadow: 0 0 0 1px var(--teal);
+}
+
+.select-card h4 {
+    font-size: 0.95rem;
+    color: var(--navy);
+    margin-bottom: 0.5rem;
+}
+
+.select-card p {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.active-check {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: var(--teal);
+    font-weight: bold;
+}
+
+/* Sticky Bottom Bar REDESIGN */
+.builder-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    z-index: 100;
+}
+
+.footer-experiment-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.footer-badge {
+    background: var(--teal-muted);
+    color: var(--teal);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+    .builder-layout {
+        flex-direction: column;
+        overflow-y: auto;
+        height: auto;
+        padding-bottom: 80px;
+    }
+
+    .builder-catalog {
+        width: 100%;
+        padding: 1.5rem;
+        border-right: none;
+        height: auto;
+        overflow: visible;
+    }
+
+    .builder-config {
+        display: none;
+    }
+
+    .footer-experiment-info h3 {
+        font-size: 0.9rem;
+    }
+}

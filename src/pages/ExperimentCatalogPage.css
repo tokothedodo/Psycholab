@@ -1,0 +1,143 @@
+.catalog-header {
+    background-color: var(--navy);
+    padding: 60px 0;
+    margin-top: calc(var(--nav-height) * -1);
+    padding-top: calc(60px + var(--nav-height));
+    position: relative;
+}
+
+.catalog-header h1 {
+    color: var(--white);
+    margin-bottom: 0.5rem;
+}
+
+.catalog-header p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+}
+
+.category-section {
+    margin-bottom: 4rem;
+}
+
+.category-header {
+    background: var(--navy);
+    color: var(--white);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--teal);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.category-header h2 {
+    color: var(--white);
+    margin-bottom: 0;
+    font-size: 1.5rem;
+}
+
+.category-count {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-weight: 500;
+}
+
+.experiment-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.experiment-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--teal);
+}
+
+.experiment-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.experiment-name {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--navy);
+    line-height: 1.3;
+}
+
+.category-pill {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.experiment-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    flex-grow: 1;
+}
+
+.experiment-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface);
+}
+
+.experiment-citation {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+    max-width: 70%;
+}
+
+.start-button {
+    background: var(--teal);
+    color: var(--white);
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.duration-pill {
+    background: var(--surface);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 64px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+}

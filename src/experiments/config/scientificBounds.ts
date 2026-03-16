@@ -60,18 +60,6 @@ const BOUNDS: Record<string, WarningFunction> = {
     }
     return null;
   },
-  totalTrials: (value: number) => {
-    if (value < 80) {
-      return { level: 'warning', messageKey: 'warnings.iowaGambling.trials', variableId: 'totalTrials' };
-    }
-    return null;
-  },
-  listLength: (value: number) => {
-    if (value < 10) {
-      return { level: 'warning', messageKey: 'warnings.serialPosition.listLength', variableId: 'listLength' };
-    }
-    return null;
-  },
 };
 
 export const checkScientificBounds = (
@@ -80,19 +68,19 @@ export const checkScientificBounds = (
   config?: Record<string, unknown>
 ): BoundCheck => {
   const warnings: Warning[] = [];
-  
+
   const boundFn = BOUNDS[variableId];
   if (!boundFn) {
     return { isValid: true, warnings: [] };
   }
-  
+
   if (typeof value === 'number') {
     const warning = boundFn(value, config);
     if (warning) {
       warnings.push(warning);
     }
   }
-  
+
   return {
     isValid: warnings.filter(w => w.level === 'error').length === 0,
     warnings,
@@ -109,13 +97,13 @@ export const validateAllVariables = (
     const result = checkScientificBounds(key, value, config);
     allWarnings.push(...result.warnings);
   }
-  
+
   const warningCount = {
     info: allWarnings.filter(w => w.level === 'info').length,
     warning: allWarnings.filter(w => w.level === 'warning').length,
     error: allWarnings.filter(w => w.level === 'error').length,
   };
-  
+
   return {
     isValid: warningCount.error === 0,
     allWarnings,

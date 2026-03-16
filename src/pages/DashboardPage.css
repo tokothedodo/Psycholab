@@ -1,0 +1,239 @@
+.dashboard-layout {
+    display: flex;
+    min-height: calc(100vh - var(--nav-height));
+    margin-top: var(--nav-height);
+}
+
+.sidebar {
+    width: 240px;
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    position: sticky;
+    top: var(--nav-height);
+    height: calc(100vh - var(--nav-height));
+}
+
+.sidebar-nav {
+    flex-grow: 1;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+    background: var(--surface);
+    color: var(--navy);
+}
+
+.sidebar-link.active {
+    background: var(--teal-muted);
+    color: var(--teal);
+    border-left-color: var(--teal);
+}
+
+.sidebar-footer {
+    padding: 1.5rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--navy-light);
+    color: var(--white);
+    border-radius: var(--radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.user-email {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-main {
+    flex-grow: 1;
+    background: var(--surface);
+    padding: 2.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+    border-top: 3px solid var(--teal);
+    text-align: center;
+}
+
+.stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.5rem;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.room-card-v2 {
+    background: var(--white);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.room-card-v2:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+}
+
+.room-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-title-area h3 {
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+}
+
+.room-code-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--navy);
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px dashed var(--teal);
+    border-radius: 4px;
+}
+
+.room-status-pill {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-active {
+    background: var(--teal-muted);
+    color: var(--teal);
+}
+
+.status-draft {
+    background: #FFFBEB;
+    color: #92400E;
+}
+
+.status-closed {
+    background: var(--surface);
+    color: var(--text-muted);
+}
+
+.room-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.btn-csv {
+    background: var(--navy);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-csv:hover {
+    background: var(--navy-light);
+}
+
+@media (max-width: 768px) {
+    .dashboard-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        flex-direction: row;
+        padding: 0;
+        z-index: 100;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .sidebar-link {
+        flex-direction: column;
+        padding: 0.75rem;
+        border-left: none;
+        border-top: 3px solid transparent;
+    }
+
+    .sidebar-link.active {
+        border-top-color: var(--teal);
+        border-left-color: transparent;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    .dashboard-main {
+        padding: 1.5rem;
+        padding-bottom: 80px;
+    }
+}

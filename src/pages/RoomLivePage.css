@@ -1,0 +1,134 @@
+.live-room-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.live-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2rem;
+}
+
+.status-live {
+    background: #DCFCE7;
+    color: #166534;
+    border: 1px solid #BBF7D0;
+}
+
+.status-draft {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+}
+
+.room-display-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 3rem;
+    box-shadow: var(--shadow-xl);
+    width: 100%;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.room-display-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--navy);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
+.live-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 5rem;
+    font-weight: 400;
+    color: var(--navy);
+    letter-spacing: 0.15em;
+    margin: 1.5rem 0;
+    display: block;
+}
+
+.copy-btn-premium {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: var(--radius-button);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.copy-btn-premium:hover {
+    background: var(--white);
+    border-color: var(--teal);
+    color: var(--teal);
+}
+
+.live-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.live-stat-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    border-radius: var(--radius-card);
+}
+
+.live-stat-value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 400;
+    color: var(--navy);
+    font-family: 'DM Serif Display', serif;
+}
+
+.live-stat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.live-actions {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+}
+
+.btn-end-session {
+    background: #FEF2F2;
+    color: #991B1B;
+    border: 1px solid #FEE2E2;
+}
+
+.btn-end-session:hover {
+    background: #FEE2E2;
+}

@@ -1,245 +1,196 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useLanguage } from '../context/LanguageContext';
 import type { Experiment } from '../data/experiments';
-import { ExperimentWrapper } from './ExperimentWrapper';
-import { useExperiment } from '../hooks/useExperiment';
-import { useTimer } from '../hooks/useTimer';
-import { randomInt } from '../lib/random';
+import type { ExperimentResults } from './ExperimentWrapper';
 
 interface DigitSpanProps {
   experiment: Experiment;
-  onComplete: (results: any) => void;
+  onComplete: (results: ExperimentResults) => void;
   participantId: string;
   roomId: string;
 }
 
 export function DigitSpanExperiment({ experiment, onComplete, participantId, roomId }: DigitSpanProps) {
-  const { t, language } = useLanguage();
-
-  const [currentSpan, setCurrentSpan] = useState(3);
-  const [failsAtCurrentSpan, setFailsAtCurrentSpan] = useState(0);
+  const [phase, setPhase] = useState<'instruction' | 'presentation' | 'recall' | 'debrief'>('instruction');
+  const [level, setLevel] = useState(3);
   const [sequence, setSequence] = useState<number[]>([]);
-  const [digitIndex, setDigitIndex] = useState(0);
-  const [userInput, setUserInput] = useState('');
-  const [highestSpan, setHighestSpan] = useState(0);
+  const [presentationIndex, setPresentationIndex] = useState(0);
+  const [input, setInput] = useState<number[]>([]);
+  const [errors, setErrors] = useState(0);
+  const [maxLevel, setMaxLevel] = useState(3);
+  const timeoutRef = useRef<any>(null);
 
-  const {
-    phase,
-    setPhase,
-    trialIndex,
-    trialData,
-    recordTrial,
-    startExperiment,
-    finishExperiment,
-  } = useExperiment({ experiment, participantId, roomId, language, onComplete });
+  const startTrial = useCallback(() => {
+    const newSequence = Array.from({ length: level }, () => Math.floor(Math.random() * 10));
+    setSequence(newSequence);
+    setPresentationIndex(0);
+    setPhase('presentation');
+  }, [level]);
 
-  const { startTimer, getResponseTime, clearTimer } = useTimer();
-  const digitTimeout = useRef<number | null>(null);
-
-  const generateSequence = useCallback((length: number) => {
-    const seq: number[] = [];
-    let lastDigit = -1;
-    for (let i = 0; i < length; i++) {
-      let digit;
-      do {
-        digit = randomInt(1, 9);
-      } while (digit === lastDigit); // Prevent adjacent duplicates
-      seq.push(digit);
-      lastDigit = digit;
-    }
-    return seq;
-  }, []);
-
-  const showSequence = useCallback(() => {
-    const nextSeq = generateSequence(currentSpan);
-    setSequence(nextSeq);
-    setDigitIndex(0);
-    setPhase('showing');
-    setUserInput('');
-  }, [currentSpan, generateSequence, setPhase]);
-
-  // Handle the digit presentation timing (1000ms on, 500ms off)
   useEffect(() => {
-    if (phase === 'showing') {
-      if (digitIndex < sequence.length) {
-        digitTimeout.current = window.setTimeout(() => {
-          setDigitIndex(prev => prev + 1);
+    if (phase === 'presentation') {
+      if (presentationIndex < sequence.length) {
+        timeoutRef.current = setTimeout(() => {
+          setPresentationIndex(prev => prev + 1);
         }, 1000);
       } else {
-        // Finished showing sequence
-        digitTimeout.current = window.setTimeout(() => {
-          setPhase('input');
-          startTimer();
-        }, 500); // Quick pause before input
+        timeoutRef.current = setTimeout(() => {
+          setPhase('recall');
+          setInput([]);
+        }, 500);
       }
     }
     return () => {
-      if (digitTimeout.current) clearTimeout(digitTimeout.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [phase, digitIndex, sequence.length, setPhase, startTimer]);
+  }, [phase, presentationIndex, sequence]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!sequence.length || phase !== 'input') return;
+  const handleInput = useCallback((digit: number) => {
+    if (phase !== 'recall') return;
+    const newInput = [...input, digit];
+    setInput(newInput);
 
-    const rt = getResponseTime() || 0;
-    const correctSeq = sequence.join('');
-    const isCorrect = userInput === correctSeq;
-
-    recordTrial({
-      trialNumber: trialIndex + 1,
-      responseTimeMs: rt,
-      answer: userInput,
-      correctAnswer: correctSeq,
-      stimulus: { sequence: correctSeq, span: currentSpan },
-    });
-
-    setPhase('feedback');
-    clearTimer();
-
-    setTimeout(() => {
-      let nextSpan = currentSpan;
-      let nextFails = failsAtCurrentSpan;
-      let endExp = false;
-
+    // Auto-submit when length matches
+    if (newInput.length === sequence.length) {
+      const isCorrect = newInput.every((val, idx) => val === sequence[idx]);
       if (isCorrect) {
-        setHighestSpan(Math.max(highestSpan, currentSpan));
-        // Move to next span, reset fails
-        nextSpan = currentSpan + 1;
-        nextFails = 0;
+        setMaxLevel(Math.max(maxLevel, level));
+        setLevel(prev => prev + 1);
+        setErrors(0);
+        setPhase('presentation'); // Next level
+        setPresentationIndex(0);
+        // Start next trial logic
+        const nextSequence = Array.from({ length: level + 1 }, () => Math.floor(Math.random() * 10));
+        setSequence(nextSequence);
       } else {
-        nextFails += 1;
-        if (nextFails >= 2) {
-          // Failed twice at current span -> end
-          endExp = true;
+        const newErrorCount = errors + 1;
+        setErrors(newErrorCount);
+        if (newErrorCount >= 2) {
+          setPhase('debrief');
+          onComplete({
+            experimentName: experiment.id,
+            participantId,
+            roomId,
+            timestamp: new Date().toISOString(),
+            totalTrials: level - 3,
+            responseTimeMs: 0,
+            accuracy: maxLevel,
+            answer: maxLevel,
+            correctAnswer: 'working_memory_span',
+            trialData: [],
+            debrief: 'Task complete. Your working memory span is ' + maxLevel + ' digits.'
+          } as any);
+        } else {
+          // Retry same level
+          setPhase('presentation');
+          setPresentationIndex(0);
+          const retrySequence = Array.from({ length: level }, () => Math.floor(Math.random() * 10));
+          setSequence(retrySequence);
         }
       }
+    }
+  }, [phase, input, sequence, level, errors, maxLevel, experiment.id, participantId, roomId, onComplete]);
 
-      if (endExp) {
-        // Accuracy here is rough, meaning total successful trials vs total
-        const correctTrials = trialData.filter(t => t.answer === t.correctAnswer).length + (isCorrect ? 1 : 0);
-        const accuracy = (correctTrials / (trialData.length + 1)) * 100;
-        finishExperiment(highestSpan, accuracy);
-      } else {
-        setCurrentSpan(nextSpan);
-        setFailsAtCurrentSpan(nextFails);
-        showSequence();
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (phase === 'instruction' && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        startTrial();
+        return;
       }
-    }, 1000);
-  };
+
+      if (phase === 'recall') {
+        if (e.key >= '0' && e.key <= '9') {
+          handleInput(parseInt(e.key));
+        } else if (e.key === 'Backspace') {
+          setInput(prev => prev.slice(0, -1));
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, handleInput, startTrial]);
 
   if (phase === 'instruction') {
     return (
-      <ExperimentWrapper experiment={experiment}>
-        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
-          <h2 className="mb-6">{t('exp.digitSpan.name')}</h2>
-          <div className="experiment-instruction">
-            <p className="mb-4">{t('exp.digitSpan.instruction')}</p>
-            <p>You will see a sequence of numbers flashing on the screen one by one. Afterwards, type the numbers in the exact same order.</p>
-            <p className="mt-4"><strong>Adaptive Difficulty:</strong> The sequence will get longer if you answer correctly. The test ends when you make two consecutive mistakes at the same length.</p>
-          </div>
-          <button onClick={() => { startExperiment('experiment'); showSequence(); }} className="btn-primary w-full sm:w-auto mt-8">
-            {t('common.start')}
-          </button>
-        </div>
-      </ExperimentWrapper>
+      <div className="flex flex-col items-center justify-center p-16 text-center bg-white rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
+        <div className="w-24 h-24 bg-purple-100 text-purple-600 rounded-3xl flex items-center justify-center text-5xl mb-10 shadow-inner">🔢</div>
+        <h1 className="text-6xl font-black text-gray-900 mb-8 tracking-tighter">Digit Span</h1>
+        <p className="text-2xl text-gray-500 mb-12 max-w-2xl leading-relaxed">
+          Memorize the sequence of numbers shown.<br />
+          Recall them in the <b>exact same order</b>.
+        </p>
+        <button
+          onClick={startTrial}
+          className="px-16 py-8 bg-purple-600 text-white rounded-[2rem] font-black text-3xl hover:bg-purple-700 transition-all shadow-[0_20px_50px_rgba(147,51,234,0.3)] hover:scale-105 active:scale-95"
+        >
+          START TEST
+        </button>
+      </div>
     );
   }
 
-  if (phase === 'complete') {
-    const correctTrials = trialData.filter(t => t.answer === t.correctAnswer).length;
-
+  if (phase === 'debrief') {
     return (
-      <ExperimentWrapper experiment={experiment}>
-        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
-          <h2 className="mb-6">{t('common.debrief.title')}</h2>
-
-          <div className="bg-success/10 border-l-4 border-success p-4 mb-6">
-            <p className="text-success-800 font-medium">{t('common.debrief.thankYou')}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-surface p-6 rounded border border-border text-center">
-              <p className="text-3xl font-bold text-primary mb-1">{highestSpan}</p>
-              <p className="text-sm text-text-secondary">{t('exp.digitSpan.maxSpan')}</p>
-            </div>
-            <div className="bg-surface p-6 rounded border border-border text-center">
-              <p className="text-3xl font-bold text-primary mb-1">{correctTrials}</p>
-              <p className="text-sm text-text-secondary">{t('common.correct')} Trials</p>
-            </div>
-          </div>
-
-          <div className="prose prose-sm text-text-secondary mt-8">
-            <h4 className="text-text-primary">What this experiment measures:</h4>
-            <p>{t('exp.digitSpan.debrief')}</p>
-            <h4 className="text-text-primary mt-4">Typical Findings:</h4>
-            <p>According to George Miller's famous 1956 paper, the capacity of short-term memory is generally "seven, plus or minus two" items for most healthy adults. However, more recent research suggests the true capacity without chunking is closer to 4 items.</p>
-            <h4 className="text-text-primary mt-4">Why it occurs:</h4>
-            <p>Short-term memory capacity is constrained by the phonological loop — a component of working memory that briefly holds verbal information through subvocal rehearsal. As the number of items exceeds this limited buffer, earlier items decay before they can be rehearsed.</p>
-            <p className="mt-4 text-xs italic">Miller, G. A. (1956). The magical number seven, plus or minus two. <em>Psychological Review, 63</em>(2), 81–97.</p>
-          </div>
+      <div className="flex flex-col items-center justify-center p-16 text-center bg-white rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
+        <h1 className="text-6xl font-black text-gray-900 mb-12 tracking-tighter">Capacity Measured</h1>
+        <div className="bg-purple-600 p-16 rounded-[4rem] shadow-2xl mb-12 w-full max-w-2xl text-white">
+          <p className="text-xs font-black uppercase tracking-[0.4em] mb-4 opacity-70">Working Memory Span</p>
+          <p className="text-9xl font-black tabular-nums leading-none">{maxLevel}<span className="text-3xl ml-2 font-medium opacity-50">digits</span></p>
         </div>
-      </ExperimentWrapper>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-12 py-6 border-4 border-gray-100 text-gray-400 rounded-[2.5rem] font-black text-xl hover:bg-gray-900 hover:text-white hover:border-black transition-all"
+        >
+          RETRY
+        </button>
+      </div>
     );
   }
 
   return (
-    <ExperimentWrapper experiment={experiment}>
-      <div className="max-w-2xl mx-auto py-8">
-
-        <div className="mb-12 flex justify-between text-sm text-text-muted uppercase tracking-wide">
-          <span>{t('exp.digitSpan.trial')} {trialData.length + 1}</span>
-          <span>Current Span: <strong>{currentSpan}</strong></span>
-          <span>Fails at Span: <strong>{failsAtCurrentSpan}/2</strong></span>
+    <div className="flex flex-col items-center justify-center min-h-[750px] w-full max-w-6xl mx-auto p-12 bg-white rounded-[4rem] shadow-sm border border-gray-50 relative overflow-hidden">
+      <div className="absolute top-12 left-16 flex items-center gap-6">
+        <div className="px-6 py-2 bg-gray-900 rounded-full text-xs font-black text-white tracking-[0.3em] uppercase">
+          Digit Span
         </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[300px] border border-border rounded bg-surface p-8">
-
-          {phase === 'showing' && (
-            <div className="text-[6rem] leading-none text-text-primary font-mono tracking-widest font-light transition-all">
-              {digitIndex < sequence.length ? sequence[digitIndex] : ''}
-            </div>
-          )}
-
-          {phase === 'input' && (
-            <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
-              <p className="text-text-muted mb-8">{t('exp.digitSpan.enter')}</p>
-              <input
-                type="text"
-                pattern="[0-9]*"
-                inputMode="numeric"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value.replace(/[^0-9]/g, ''))}
-                className="w-full max-w-sm p-4 bg-white border border-border rounded text-center text-3xl font-mono tracking-[0.5em] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                placeholder="---"
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={!userInput}
-                className="btn-primary mt-8 px-12 disabled:opacity-50"
-              >
-                {t('common.submit')}
-              </button>
-            </form>
-          )}
-
-          {phase === 'feedback' && (
-            <div className="text-center">
-              <div className={`text-6xl font-bold mb-4 ${userInput === sequence.join('') ? 'text-success' : 'text-error'}`}>
-                {userInput === sequence.join('') ? '✓' : '✗'}
-              </div>
-              {userInput !== sequence.join('') && (
-                <p className="text-lg text-text-secondary">
-                  {t('exp.digitSpan.was')}: <span className="font-mono text-text-primary font-bold ml-2 tracking-widest">{sequence.join('')}</span>
-                </p>
-              )}
-            </div>
-          )}
-
+        <div className="px-6 py-2 bg-purple-50 rounded-full text-xs font-black text-purple-600 tracking-[0.3em] uppercase">
+          LEVEL {level}
         </div>
       </div>
-    </ExperimentWrapper>
+
+      <div className="flex-1 flex items-center justify-center w-full">
+        {phase === 'presentation' ? (
+          <div key={presentationIndex} className="text-[16rem] font-black tabular-nums text-gray-900 animate-in zoom-in duration-200">
+            {presentationIndex < sequence.length ? sequence[presentationIndex] : ''}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-16 w-full max-w-2xl animate-fade-in">
+            <div className="flex flex-wrap justify-center gap-6 min-h-[140px] w-full p-10 bg-gray-50 rounded-[3rem] border-4 border-dashed border-gray-200">
+              {input.map((d, i) => (
+                <div key={i} className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center text-5xl font-black text-purple-600 animate-in slide-in-from-bottom-4 duration-150">
+                  {d}
+                </div>
+              ))}
+              {input.length === 0 && <span className="text-gray-200 font-black uppercase tracking-[0.5em] self-center text-sm">RECALL SEQUENCE</span>}
+            </div>
+
+            <div className="grid grid-cols-5 gap-6 w-full">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => (
+                <button
+                  key={d}
+                  onClick={() => handleInput(d)}
+                  className="h-24 bg-white border-2 border-gray-100 rounded-[2rem] text-3xl font-black text-gray-700 hover:bg-gray-900 hover:text-white hover:border-black hover:shadow-2xl hover:-translate-y-2 transition-all active:scale-90"
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs font-black text-gray-300 uppercase tracking-[0.4em]">Use Numeric Keypad or Click</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

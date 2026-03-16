@@ -1,360 +1,216 @@
-/**
- * STROOP TEST
- * Refactored for scientific accuracy, using shared hooks and a minimal academic UI.
- */
-
-import { useState, useCallback, useEffect } from 'react';
-import { useLanguage } from '../context/LanguageContext';
-import { ExperimentWrapper } from './ExperimentWrapper';
+import { useState, useEffect, useCallback } from 'react';
 import type { Experiment } from '../data/experiments';
-import { useExperiment } from '../hooks/useExperiment';
-import { useTimer } from '../hooks/useTimer';
-import { useResponseCapture } from '../hooks/useResponseCapture';
-import { fisherYatesShuffle } from '../lib/random';
+import type { ExperimentResults } from './ExperimentWrapper';
 
 interface StroopProps {
   experiment: Experiment;
-  onComplete: (results: any) => void;
+  onComplete: (results: ExperimentResults) => void;
   participantId: string;
   roomId: string;
-  config?: any;
 }
 
-const COLOR_MAP: Record<string, { hex: string; letter: string }> = {
-  red: { hex: '#dc2626', letter: 'r' },
-  blue: { hex: '#2563eb', letter: 'b' },
-  green: { hex: '#16a34a', letter: 'g' },
-  yellow: { hex: '#ca8a04', letter: 'y' },
-};
+const COLORS = [
+  { name: 'Red', hex: '#ef4444', key: 'r' },
+  { name: 'Green', hex: '#22c55e', key: 'g' },
+  { name: 'Blue', hex: '#3b82f6', key: 'b' },
+  { name: 'Yellow', hex: '#eab308', key: 'y' },
+];
 
-export function StroopExperiment({ experiment, onComplete, participantId, roomId, config = {} }: StroopProps) {
-  const { t, language } = useLanguage();
+export function StroopExperiment({ experiment, onComplete, participantId, roomId }: StroopProps) {
+  const [phase, setPhase] = useState<'instruction' | 'test' | 'debrief'>('instruction');
+  const [trial, setTrial] = useState(0);
+  const [stimulus, setStimulus] = useState({ word: '', color: '', congruent: false });
+  const [startTime, setStartTime] = useState(0);
+  const [results, setResults] = useState<{ trial: number; rt: number; correct: boolean; congruent: boolean }[]>([]);
+  const totalTrials = 12;
 
-  // Scientific Defaults for Stroop
-  const trialsCount = config.trials || 48; // Standard 48 trials
-  const practiceTrialsCount = config.practiceTrials || 12;
-  const isi = config.isi ?? 500; // 500ms ISI
-
-  const {
-    phase,
-    trialIndex,
-    trialData,
-    recordTrial,
-    startExperiment,
-    advanceTrial,
-    finishExperiment,
-  } = useExperiment({ experiment, participantId, roomId, language, onComplete });
-
-  const { startTimer, getResponseTime } = useTimer();
-
-  const [stimuli, setStimuli] = useState<{ word: string; color: string; congruent: boolean }[]>([]);
-  const [practiceStimuli, setPracticeStimuli] = useState<{ word: string; color: string; congruent: boolean }[]>([]);
-  const [isWaiting, setIsWaiting] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
-
-  // Pre-calculate stimuli
-  useEffect(() => {
-    const generate = (count: number) => {
-      const colors = Object.keys(COLOR_MAP);
-      const items = [];
-      const half = Math.floor(count / 2);
-
-      // 50% congruent
-      for (let i = 0; i < half; i++) {
-        const color = colors[i % colors.length];
-        items.push({ word: color, color, congruent: true });
-      }
-
-      // 50% incongruent
-      for (let i = 0; i < count - half; i++) {
-        const word = colors[i % colors.length];
-        let color;
-        do {
-          color = colors[Math.floor(Math.random() * colors.length)];
-        } while (color === word);
-        items.push({ word, color, congruent: false });
-      }
-      return fisherYatesShuffle(items);
-    };
-
-    setPracticeStimuli(generate(practiceTrialsCount));
-    setStimuli(generate(trialsCount));
-  }, [trialsCount, practiceTrialsCount]);
-
-  // Start trial timer when we enter an active trial state
-  useEffect(() => {
-    if ((phase === 'experiment' || phase === 'practice') && !isWaiting) {
-      startTimer();
-    }
-  }, [phase, trialIndex, isWaiting, startTimer]);
-
-  const handleResponseInternal = useCallback((selectedColor: string) => {
-    if (isWaiting || (phase !== 'experiment' && phase !== 'practice')) return;
-
-    const rt = getResponseTime() || 0;
-    const currentList = phase === 'practice' ? practiceStimuli : stimuli;
-    const currentStimulus = currentList[trialIndex];
-
-    if (!currentStimulus) return;
-
-    const isCorrect = selectedColor === currentStimulus.color;
-
-    if (phase === 'experiment') {
-      recordTrial({
-        trialNumber: trialIndex + 1,
-        responseTimeMs: rt,
-        answer: selectedColor,
-        correctAnswer: currentStimulus.color,
-        stimulus: currentStimulus,
-      });
+  const startTrial = useCallback(() => {
+    const isCongruent = Math.random() > 0.5;
+    const wordIndex = Math.floor(Math.random() * COLORS.length);
+    let colorIndex;
+    if (isCongruent) {
+      colorIndex = wordIndex;
+    } else {
+      do {
+        colorIndex = Math.floor(Math.random() * COLORS.length);
+      } while (colorIndex === wordIndex);
     }
 
-    const nextPhasePrep = () => {
-      if (phase === 'experiment' && trialIndex === stimuli.length - 1) {
-        // Calculate scoring immediately before finishing
-        const expTrials = [...trialData, {
-          trialNumber: trialIndex + 1,
-          responseTimeMs: rt,
-          answer: selectedColor,
-          correctAnswer: currentStimulus.color,
-          stimulus: currentStimulus,
-        }];
+    setStimulus({
+      word: COLORS[wordIndex].name,
+      color: COLORS[colorIndex].hex,
+      congruent: isCongruent
+    });
+    setStartTime(performance.now());
+  }, []);
 
-        const correctOnly = expTrials.filter(t => t.answer === t.correctAnswer);
-        const accuracy = (correctOnly.length / expTrials.length) * 100;
+  useEffect(() => {
+    if (phase === 'test') {
+      startTrial();
+    }
+  }, [phase, trial, startTrial]);
 
-        const congruentCorrect = correctOnly.filter(t => (t.stimulus as any).congruent);
-        const incongruentCorrect = correctOnly.filter(t => !(t.stimulus as any).congruent);
+  const handleResponse = useCallback((selectedColorName: string) => {
+    if (phase !== 'test') return;
 
-        const congruentRT = congruentCorrect.length > 0
-          ? congruentCorrect.reduce((s, t) => s + t.responseTimeMs, 0) / congruentCorrect.length
-          : 0;
-        const incongruentRT = incongruentCorrect.length > 0
-          ? incongruentCorrect.reduce((s, t) => s + t.responseTimeMs, 0) / incongruentCorrect.length
-          : 0;
+    const rt = performance.now() - startTime;
+    const correctColor = COLORS.find(c => c.hex === stimulus.color)?.name;
+    const isCorrect = selectedColorName === correctColor;
+    const newResults = [...results, { trial: trial + 1, rt, correct: isCorrect, congruent: stimulus.congruent }];
+    setResults(newResults);
 
-        const interference = Math.round(incongruentRT - congruentRT);
-        finishExperiment(interference, accuracy);
+    if (trial + 1 < totalTrials) {
+      setTrial(prev => prev + 1);
+    } else {
+      setPhase('debrief');
+      const avgRt = newResults.reduce((acc, r) => acc + r.rt, 0) / newResults.length;
+      const accuracy = (newResults.filter(r => r.correct).length / newResults.length) * 100;
+
+      const congruentResults = newResults.filter(r => r.congruent);
+      const incongruentResults = newResults.filter(r => !r.congruent);
+
+      const avgCongruentRt = congruentResults.length > 0
+        ? congruentResults.reduce((acc, r) => acc + r.rt, 0) / congruentResults.length
+        : 0;
+      const avgIncongruentRt = incongruentResults.length > 0
+        ? incongruentResults.reduce((acc, r) => acc + r.rt, 0) / incongruentResults.length
+        : 0;
+
+      onComplete({
+        experimentName: experiment.id,
+        participantId,
+        roomId,
+        timestamp: new Date().toISOString(),
+        totalTrials: newResults.length,
+        responseTimeMs: Math.round(avgRt),
+        accuracy,
+        trialData: newResults.map(r => ({
+          trialNumber: r.trial,
+          responseTimeMs: Math.round(r.rt),
+          stimulus: stimulus.word,
+          answer: isCorrect ? 'correct' : 'incorrect',
+          correctAnswer: 'correct'
+        })),
+        debrief: `Stroop effect: Incongruent RT (${Math.round(avgIncongruentRt)}ms) - Congruent RT (${Math.round(avgCongruentRt)}ms) = ${Math.round(avgIncongruentRt - avgCongruentRt)}ms.`
+      } as any);
+    }
+  }, [phase, startTime, stimulus, results, trial, experiment.id, participantId, roomId, onComplete]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (phase === 'instruction' && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        setPhase('test');
         return;
       }
 
-      if (isi > 0) {
-        setIsWaiting(true);
-        setTimeout(() => {
-          setIsWaiting(false);
-          advanceTrial(phase === 'practice', currentList.length);
-        }, isi);
-      } else {
-        advanceTrial(phase === 'practice', currentList.length);
+      if (phase === 'test') {
+        const color = COLORS.find(c => c.key === key);
+        if (color) {
+          handleResponse(color.name);
+        }
       }
     };
-
-    if (phase === 'practice') {
-      setLastCorrect(isCorrect);
-      setShowFeedback(true);
-      setTimeout(() => {
-        setShowFeedback(false);
-        nextPhasePrep();
-      }, 500);
-    } else {
-      nextPhasePrep();
-    }
-  }, [phase, isWaiting, getResponseTime, practiceStimuli, stimuli, trialIndex, recordTrial, trialData, finishExperiment, isi, advanceTrial]);
-
-  // Hook for Keyboard Input
-  const validKeys = Object.values(COLOR_MAP).map(c => c.letter);
-  useResponseCapture({
-    validKeys,
-    onResponse: (key: string) => {
-      const colorName = Object.entries(COLOR_MAP).find(([_, v]) => v.letter === key)?.[0];
-      if (colorName) handleResponseInternal(colorName);
-    },
-    disabled: isWaiting || (phase !== 'experiment' && phase !== 'practice')
-  });
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, handleResponse]);
 
   if (phase === 'instruction') {
     return (
-      <ExperimentWrapper experiment={experiment}>
-        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
-          <h2 className="mb-6">{t('exp.stroop.name')}</h2>
+      <div className="flex flex-col items-center justify-center p-16 text-center bg-white rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
+        <div className="w-24 h-24 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center text-5xl mb-10 shadow-inner">🎨</div>
+        <h1 className="text-6xl font-black text-gray-900 mb-8 tracking-tighter">Stroop Task</h1>
+        <p className="text-2xl text-gray-500 mb-12 max-w-2xl leading-relaxed">
+          Name the <span className="font-black text-gray-900 bg-yellow-300 px-3 py-1 rounded-lg">INK COLOR</span> as fast as possible.<br />
+          Ignore the written text.
+        </p>
 
-          <div className="experiment-instruction">
-            {config.customInstructions || t('exp.stroop.instruction')}
-          </div>
-
-          <div className="bg-surface border border-border rounded p-6 mb-8">
-            <h3 className="text-base mb-4">{t('exp.stroop.keys')}</h3>
-            <div className="flex flex-wrap gap-6 justify-center">
-              {Object.entries(COLOR_MAP).map(([name, data]) => (
-                <div key={name} className="flex flex-col items-center gap-2">
-                  <div className="w-8 h-8 rounded border border-border" style={{ backgroundColor: data.hex }} />
-                  <span className="font-mono font-bold text-text-primary uppercase px-2 py-1 bg-white border border-border rounded">
-                    {data.letter}
-                  </span>
-                </div>
-              ))}
+        <div className="grid grid-cols-2 gap-6 w-full max-w-2xl mb-12">
+          {COLORS.map(c => (
+            <div key={c.name} className="flex items-center gap-6 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+              <div className="w-10 h-10 rounded-full shadow-md" style={{ backgroundColor: c.hex }}></div>
+              <span className="font-black text-gray-700 text-xl">{c.name}</span>
+              <kbd className="ml-auto bg-gray-900 text-white px-4 py-1 rounded-xl font-mono text-sm uppercase">{c.key}</kbd>
             </div>
-            <p className="text-center text-text-muted text-sm mt-4">
-              Press the corresponding key to select the <strong className="text-text-primary">ink color</strong>.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-4 text-sm text-text-secondary mb-8 bg-surface p-4 rounded border border-border">
-            <span><strong>{trialsCount}</strong> trials</span>
-            <span>&bull;</span>
-            <span><strong>{practiceTrialsCount}</strong> practice</span>
-            <span>&bull;</span>
-            <span>ISI: <strong>{isi}ms</strong></span>
-          </div>
-
-          <button
-            onClick={() => startExperiment(practiceTrialsCount > 0 ? 'practice' : 'experiment')}
-            className="btn-primary w-full sm:w-auto"
-          >
-            {t('common.start')}
-          </button>
+          ))}
         </div>
-      </ExperimentWrapper>
+
+        <button
+          onClick={() => setPhase('test')}
+          className="px-16 py-8 bg-black text-white rounded-[2rem] font-black text-3xl hover:bg-gray-800 transition-all shadow-2xl hover:scale-105 active:scale-95"
+        >
+          BEGIN MISSION
+        </button>
+      </div>
     );
   }
 
-  if (phase === 'complete') {
-    const accuracy = trialData.length > 0
-      ? (trialData.filter(t => t.answer === t.correctAnswer).length / trialData.length) * 100
-      : 0;
-
-    const correctOnly = trialData.filter(t => t.answer === t.correctAnswer);
-    const congruentTrials = correctOnly.filter(t => (t.stimulus as any)?.congruent);
-    const incongruentTrials = correctOnly.filter(t => !(t.stimulus as any)?.congruent);
-
-    const congruentRT = congruentTrials.length > 0
-      ? congruentTrials.reduce((s, t) => s + t.responseTimeMs, 0) / congruentTrials.length
-      : 0;
-    const incongruentRT = incongruentTrials.length > 0
-      ? incongruentTrials.reduce((s, t) => s + t.responseTimeMs, 0) / incongruentTrials.length
-      : 0;
-    const interference = Math.round(incongruentRT - congruentRT);
+  if (phase === 'debrief') {
+    const accuracy = Math.round((results.filter(r => r.correct).length / results.length) * 100);
+    const congruentResults = results.filter(r => r.congruent);
+    const incongruentResults = results.filter(r => !r.congruent);
+    const avgCongruentRt = Math.round(congruentResults.reduce((acc, r) => acc + r.rt, 0) / congruentResults.length) || 0;
+    const avgIncongruentRt = Math.round(incongruentResults.reduce((acc, r) => acc + r.rt, 0) / incongruentResults.length) || 0;
 
     return (
-      <ExperimentWrapper experiment={experiment}>
-        <div className="bg-white border border-border rounded p-8 max-w-2xl mx-auto">
-          <h2 className="mb-6">{t('common.debrief.title')}</h2>
-
-          <div className="bg-success/10 border-l-4 border-success p-4 mb-6">
-            <p className="text-success-800 font-medium">{t('common.debrief.thankYou')}</p>
+      <div className="flex flex-col items-center justify-center p-16 text-center bg-white rounded-[3rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
+        <h1 className="text-6xl font-black text-gray-900 mb-12 tracking-tighter">Performance Data</h1>
+        <div className="grid grid-cols-2 gap-8 w-full mb-12">
+          <div className="bg-gray-900 text-white p-12 rounded-[3.5rem] shadow-2xl">
+            <p className="text-xs text-gray-500 font-black uppercase tracking-[0.4em] mb-4">Precision</p>
+            <p className="text-7xl font-black">{accuracy}%</p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-surface p-6 rounded border border-border text-center">
-              <p className="text-3xl font-bold text-primary mb-1">{Math.round(accuracy)}%</p>
-              <p className="text-sm text-text-secondary">{t('common.correct')}</p>
-            </div>
-            <div className="bg-surface p-6 rounded border border-border text-center">
-              <p className="text-3xl font-bold text-primary mb-1">{Math.round(congruentRT)}ms</p>
-              <p className="text-sm text-text-secondary">{t('exp.stroop.congruent')} RT</p>
-            </div>
-            <div className="bg-surface p-6 rounded border border-border text-center">
-              <p className="text-3xl font-bold text-primary mb-1">{Math.round(incongruentRT)}ms</p>
-              <p className="text-sm text-text-secondary">{t('exp.stroop.incongruent')} RT</p>
-            </div>
-          </div>
-
-          <div className="bg-info/10 border border-info/20 p-6 rounded mb-8">
-            <h3 className="text-info-800 mb-2">{t('exp.stroop.interference')}: {interference}ms</h3>
-            <p className="text-sm text-info-700">{t('exp.stroop.interpretation')}</p>
-          </div>
-
-          <div className="prose prose-sm text-text-secondary">
-            <h4 className="text-text-primary">What this experiment measures:</h4>
-            <p>The Stroop test demonstrates interference in the reaction time of a task. When the name of a color is printed in a color which is not denoted by the name, naming the color of the word takes longer and is more prone to errors than when the color of the ink matches the name of the color.</p>
-
-            <h4 className="text-text-primary mt-4">Typical Findings:</h4>
-            <p>Participants are reliably slower to respond to incongruent trials (where word and ink mismatch) compared to congruent trials. This difference in milliseconds is your interference score.</p>
-
-            <h4 className="text-text-primary mt-4">Why it occurs:</h4>
-            <p>Reading is a highly automated process that is difficult to suppress. When the word meaning conflicts with the ink color, your brain must resolve the competition between these two sources of information, which takes additional time. This reflects the concept of automaticity in cognitive psychology.</p>
-
-            <p className="mt-4 text-xs italic">Stroop, J. R. (1935). Studies of interference in serial verbal reactions. <em>Journal of Experimental Psychology, 18</em>(6), 643–662.</p>
+          <div className="bg-red-600 text-white p-12 rounded-[3.5rem] shadow-2xl">
+            <p className="text-xs text-red-200 font-black uppercase tracking-[0.4em] mb-4">Inhibition Cost</p>
+            <p className="text-7xl font-black">{avgIncongruentRt - avgCongruentRt}<span className="text-2xl ml-1 font-medium opacity-50">ms</span></p>
           </div>
         </div>
-      </ExperimentWrapper>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-12 py-6 border-4 border-gray-100 text-gray-400 rounded-[2.5rem] font-black text-xl hover:bg-gray-900 hover:text-white hover:border-black transition-all"
+        >
+          RETEST
+        </button>
+      </div>
     );
   }
 
-  const currentList = phase === 'practice' ? practiceStimuli : stimuli;
-  const currentStimulus = currentList[trialIndex];
-  const total = currentList.length;
-
   return (
-    <ExperimentWrapper experiment={experiment}>
-      <div className="max-w-2xl mx-auto py-8">
-
-        <div className="mb-12">
-          <div className="h-1 bg-surface rounded overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${((trialIndex) / total) * 100}%` }}
-            />
-          </div>
-          <p className="text-xs text-text-muted text-right mt-2 uppercase tracking-wide">
-            {phase === 'practice' ? 'Practice' : 'Trial'} {trialIndex + 1} / {total}
-          </p>
+    <div className="flex flex-col items-center justify-center min-h-[750px] w-full max-w-6xl mx-auto p-12 bg-white rounded-[4rem] shadow-sm border border-gray-50 relative overflow-hidden">
+      <div className="absolute top-12 left-16 flex items-center gap-6">
+        <div className="px-6 py-2 bg-gray-900 rounded-full text-xs font-black text-white tracking-[0.3em] uppercase">
+          TRIAL {trial + 1} / {totalTrials}
         </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[300px]">
-          {isWaiting ? (
-            <span className="text-4xl text-text-muted font-light">+</span>
-          ) : (
-            <>
-              {showFeedback && phase === 'practice' && (
-                <div className="absolute top-1/4 text-center">
-                  <span className={`text-4xl font-bold ${lastCorrect ? 'text-success' : 'text-error'}`}>
-                    {lastCorrect ? '✓' : '✗'}
-                  </span>
-                </div>
-              )}
-
-              {currentStimulus && !showFeedback && (
-                <span
-                  className="font-bold tracking-tight"
-                  style={{
-                    color: COLOR_MAP[currentStimulus.color].hex,
-                    fontSize: '64px',
-                  }}
-                >
-                  {currentStimulus.word.toUpperCase()}
-                </span>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="mt-12">
-          <p className="text-center text-text-secondary mb-6 text-sm uppercase tracking-wide">
-            {t('exp.stroop.selectColor')}
-          </p>
-          <div className="flex justify-center gap-4">
-            {Object.entries(COLOR_MAP).map(([name, data]) => (
-              <button
-                key={name}
-                onClick={() => handleResponseInternal(name)}
-                disabled={isWaiting || showFeedback}
-                className="w-24 h-24 rounded border-2 border-border hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 bg-white flex-shrink-0"
-              >
-                <div className="w-8 h-8 rounded-full" style={{ backgroundColor: data.hex }} />
-                <span className="font-mono text-text-muted text-xs uppercase px-2 py-1 bg-surface rounded">
-                  {data.letter}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
       </div>
-    </ExperimentWrapper>
+
+      <div className="flex-1 flex items-center justify-center w-full">
+        <span
+          className="text-[12rem] lg:text-[16rem] font-black uppercase tracking-tighter animate-in fade-in zoom-in duration-100 leading-none select-none"
+          style={{ color: stimulus.color, filter: 'drop-shadow(0 15px 30px rgba(0,0,0,0.15))' }}
+        >
+          {stimulus.word}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-4xl mt-16">
+        {COLORS.map(color => (
+          <button
+            key={color.name}
+            onClick={() => handleResponse(color.name)}
+            className="group flex flex-col items-center gap-6 p-10 bg-white rounded-[3rem] border-2 border-transparent hover:border-gray-200 hover:shadow-2xl hover:-translate-y-2 transition-all active:scale-95"
+          >
+            <div className="w-16 h-16 rounded-full shadow-lg group-hover:scale-110 transition-transform" style={{ backgroundColor: color.hex }}></div>
+            <div className="flex flex-col items-center">
+              <span className="text-xs font-black text-gray-300 uppercase tracking-[0.3em] mb-3">{color.name}</span>
+              <kbd className="bg-gray-100 text-gray-900 px-6 py-2 rounded-2xl font-mono text-xl font-black group-hover:bg-gray-900 group-hover:text-white transition-all shadow-sm">{color.key.toUpperCase()}</kbd>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export default StroopExperiment;
-

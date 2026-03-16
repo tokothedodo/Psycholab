@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getUser, getRooms, activateRoom, closeRoom, getUniqueParticipants, type Room } from '../lib/supabase';
+import './RoomLivePage.css';
 
 export function RoomLivePage() {
     const { code } = useParams<{ code: string }>();
@@ -18,7 +19,6 @@ export function RoomLivePage() {
         loadRoom();
     }, [code]);
 
-    // Poll for participants every 5 seconds
     useEffect(() => {
         if (!room) return;
         const interval = setInterval(async () => {
@@ -26,7 +26,7 @@ export function RoomLivePage() {
                 const participants = await getUniqueParticipants(room.id);
                 setParticipantCount(participants.length);
             } catch (e) {
-                console.error('[PsychoLab] participant poll error:', e);
+                console.error('[PsychoLab] poll error:', e);
             }
         }, 5000);
         return () => clearInterval(interval);
@@ -42,12 +42,12 @@ export function RoomLivePage() {
             const rooms = await getRooms(user.id);
             const found = rooms.find(r => r.code === code);
             if (!found) {
-                setError('Room not found');
+                setError('Experiment session not found');
                 return;
             }
             setRoom(found);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to load room');
+            setError(err instanceof Error ? err.message : 'System synchronization failed');
         } finally {
             setLoading(false);
         }
@@ -61,22 +61,13 @@ export function RoomLivePage() {
         }
     };
 
-    const handleCopyLink = () => {
-        if (room) {
-            const link = `${window.location.origin}/join/${room.code}`;
-            navigator.clipboard.writeText(link);
-            setCopied('link');
-            setTimeout(() => setCopied(null), 2000);
-        }
-    };
-
     const handleActivate = async () => {
         if (!room) return;
         try {
             await activateRoom(room.id);
             setRoom({ ...room, status: 'active' });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to activate room');
+            setError('Failed to initialize session');
         }
     };
 
@@ -86,29 +77,19 @@ export function RoomLivePage() {
             await closeRoom(room.id);
             navigate('/dashboard');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to close room');
+            setError('Terminating session failed');
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">{t('common.loading')}</p>
-            </div>
-        );
-    }
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-navy font-bold">SYNCHRONIZING...</div></div>;
 
     if (error || !room) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-red-600 mb-4">{error || 'Room not found'}</p>
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="text-teal-600 hover:underline"
-                    >
-                        {t('nav.dashboard')}
-                    </button>
+            <div className="min-h-screen flex items-center justify-center p-8">
+                <div className="text-center max-w-md">
+                    <h2 className="text-error mb-4">Access Denied</h2>
+                    <p className="text-text-secondary mb-8">{error || 'Session ID is invalid or has expired.'}</p>
+                    <button onClick={() => navigate('/dashboard')} className="btn-primary">Return to Console</button>
                 </div>
             </div>
         );
@@ -116,106 +97,62 @@ export function RoomLivePage() {
 
     const shareLink = `${window.location.origin}/join/${room.code}`;
     const isActive = room.status === 'active';
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(shareLink)}`;
 
     return (
-        <div className="min-h-screen bg-surface flex flex-col">
-            <header className="bg-primary text-white py-4 border-b border-navy-800">
-                <div className="academic-container flex justify-between items-center">
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="text-white hover:text-gray-200 transition-colors"
-                    >
-                        ← {t('common.back')}
-                    </button>
-                    <span className={`px-3 py-1 rounded text-sm font-medium ${isActive
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-amber-500/20 text-amber-300'
-                        }`}>
-                        {isActive ? 'LIVE' : 'DRAFT'}
-                    </span>
-                </div>
+        <div className="min-h-screen bg-surface">
+            <header className="p-6">
+                <button onClick={() => navigate('/dashboard')} className="btn-outline py-2 text-xs">← End Observation</button>
             </header>
 
-            <main className="academic-container py-12 flex-1 max-w-2xl mx-auto w-full">
-                {/* Room Code */}
-                <div className="bg-white rounded-lg border border-border p-8 text-center mb-6">
-                    <p className="text-text-secondary text-sm uppercase tracking-wider mb-2">Room Code</p>
-                    <div className="flex items-center justify-center gap-4">
-                        <span className="text-5xl md:text-6xl font-mono font-bold text-primary tracking-widest">
-                            {room.code}
-                        </span>
-                        <button
-                            onClick={handleCopyCode}
-                            className="p-3 rounded-lg border border-border hover:bg-gray-50 transition-colors"
-                            title="Copy code"
-                        >
-                            {copied === 'code' ? (
-                                <span className="text-green-600 text-xl">✓</span>
-                            ) : (
-                                <span className="text-gray-500 text-xl">📋</span>
-                            )}
+            <main className="live-room-container animate-fade-in">
+                <div className={`live-status-pill ${isActive ? 'status-live' : 'status-draft'}`}>
+                    <span className="w-2 h-2 rounded-full bg-current mr-2 animate-pulse" />
+                    {isActive ? 'Collection Active' : 'Protocol Staging'}
+                </div>
+
+                <div className="room-display-card">
+                    <p className="live-stat-label">Session Access Code</p>
+                    <span className="live-code">{room.code}</span>
+
+                    <div className="flex justify-center gap-3 mb-8">
+                        <button onClick={handleCopyCode} className="copy-btn-premium">
+                            {copied === 'code' ? '✓ Copied' : 'Copy Code'}
                         </button>
                     </div>
+
+                    <div className="flex justify-center mb-4">
+                        <div className="p-4 bg-white border rounded-xl shadow-inner">
+                            <img src={qrUrl} alt="Join QR Code" className="w-40 h-40" />
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-2">{t('roomBuilder.participantLink')}</p>
+                    <p className="text-xs font-mono text-navy truncate max-w-xs mx-auto opacity-60 m-0">{shareLink}</p>
                 </div>
 
-                {/* Share Link */}
-                <div className="bg-white rounded-lg border border-border p-6 mb-6">
-                    <p className="text-text-secondary text-sm uppercase tracking-wider mb-2">Participant Link</p>
-                    <div className="flex items-center gap-2">
-                        <code className="flex-1 bg-gray-50 px-4 py-3 rounded border border-border text-sm break-all">
-                            {shareLink}
-                        </code>
-                        <button
-                            onClick={handleCopyLink}
-                            className="px-4 py-3 rounded-lg border border-border hover:bg-gray-50 transition-colors whitespace-nowrap text-sm font-medium"
-                        >
-                            {copied === 'link' ? '✓ Copied' : 'Copy Link'}
-                        </button>
+                <div className="live-stats-grid">
+                    <div className="live-stat-item">
+                        <span className="live-stat-value">{participantCount}</span>
+                        <span className="live-stat-label">Participants</span>
+                    </div>
+                    <div className="live-stat-item">
+                        <span className="live-stat-value">{isActive ? 'LIVE' : 'WAIT'}</span>
+                        <span className="live-stat-label">Data Stream</span>
                     </div>
                 </div>
 
-                {/* Status */}
-                <div className="bg-white rounded-lg border border-border p-6 mb-6">
-                    <div className="grid grid-cols-2 gap-6 text-center">
-                        <div>
-                            <p className="text-3xl font-bold text-primary">{participantCount}</p>
-                            <p className="text-text-secondary text-sm">{t('dashboard.participants')}</p>
-                        </div>
-                        <div>
-                            <p className="text-3xl font-bold text-navy-900">
-                                {isActive ? '🟢' : '🟡'}
-                            </p>
-                            <p className="text-text-secondary text-sm">
-                                {isActive ? 'Session Active' : 'Waiting to start...'}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3">
+                <div className="live-actions mt-4">
                     {!isActive ? (
-                        <button
-                            onClick={handleActivate}
-                            className="flex-1 btn-primary text-lg py-4"
-                        >
-                            ▶ Start Session
-                        </button>
+                        <button onClick={handleActivate} className="flex-1 btn-primary py-4 text-lg">Initialize Protocol</button>
                     ) : (
-                        <button
-                            onClick={handleClose}
-                            className="flex-1 bg-red-50 border border-red-200 text-red-700 py-4 rounded-lg hover:bg-red-100 transition-colors text-lg font-medium"
-                        >
-                            ■ End Session
-                        </button>
+                        <button onClick={handleClose} className="flex-1 btn-end-session py-4 text-lg font-bold">Terminate Session</button>
                     )}
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="flex-1 btn-outline text-lg py-4"
-                    >
-                        {t('nav.dashboard')}
-                    </button>
                 </div>
+
+                <p className="mt-8 text-xs text-text-muted max-w-md">
+                    Observing {room.experiment.replace(/-/g, ' ')} research session.
+                    Refresh frequency: 5s. Participant data is encrypted at rest.
+                </p>
             </main>
         </div>
     );

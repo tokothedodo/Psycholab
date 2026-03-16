@@ -4,13 +4,14 @@ import { useLanguage } from '../context/LanguageContext';
 import { getRooms, getUniqueParticipants, getRoomResultsCount, closeRoom, getResults, getUser, signOut, type Room, type Result } from '../lib/supabase';
 import { AIAssistant } from '../components/AIAssistant';
 import { getExperimentById } from '../data/experiments';
+import './DashboardPage.css';
 
 export function DashboardPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [showAI, setShowAI] = useState(false);
   const [roomStats, setRoomStats] = useState<Record<string, { participants: number; results: number }>>({});
 
@@ -19,24 +20,24 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (userId) {
+    if (user?.id) {
       loadRooms();
     }
-  }, [userId]);
+  }, [user?.id]);
 
   const checkUser = async () => {
-    const user = await getUser();
-    if (!user) {
+    const userData = await getUser();
+    if (!userData) {
       navigate('/login');
       return;
     }
-    setUserId(user.id);
+    setUser({ id: userData.id, email: userData.email });
   };
 
   const loadRooms = async () => {
-    if (!userId) return;
+    if (!user?.id) return;
     try {
-      const roomsData = await getRooms(userId);
+      const roomsData = await getRooms(user.id);
       setRooms(roomsData);
 
       const stats: Record<string, { participants: number; results: number }> = {};
@@ -96,67 +97,100 @@ export function DashboardPage() {
   const activeRooms = rooms.filter((r) => r.status === 'active' || r.status === 'draft');
   const pastRooms = rooms.filter((r) => r.status === 'closed');
 
+  const totalParticipants = Object.values(roomStats).reduce((acc, curr) => acc + curr.participants, 0);
+  const totalResults = Object.values(roomStats).reduce((acc, curr) => acc + curr.results, 0);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">{t('common.loading')}</p>
+        <p className="text-text-muted animate-pulse">Initializing Dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
-      <header className="bg-primary text-white py-4 border-b border-navy-800">
-        <div className="academic-container flex justify-between items-center">
-          <div>
-            <h2 className="mb-0 text-white leading-none">{t('dashboard.title')}</h2>
+    <div className="dashboard-layout animate-fade-in">
+      <aside className="sidebar">
+        <nav className="sidebar-nav">
+          <div className="px-6 mb-8">
+            <h3 style={{ fontFamily: 'DM Serif Display' }}>PsychoLab<span style={{ color: 'var(--teal)' }}>.</span></h3>
           </div>
-          <div className="flex gap-4 items-center">
-            <button
-              onClick={() => setShowAI(!showAI)}
-              className="btn-secondary"
-            >
-              AI Assistant
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-white hover:text-gray-200 transition-colors"
-            >
-              {t('nav.logout')}
-            </button>
+          <a href="#" className="sidebar-link active">
+            <span>🏠</span> Dashboard
+          </a>
+          <a href="#" className="sidebar-link" onClick={() => navigate('/experiments')}>
+            <span>🔬</span> Experiments
+          </a>
+          <button className="sidebar-link w-full text-left" onClick={() => setShowAI(!showAI)}>
+            <span>🤖</span> AI Assistant
+          </button>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="avatar">
+            {user?.email?.charAt(0).toUpperCase()}
           </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="font-semibold text-sm mb-0">{user?.email?.split('@')[0]}</p>
+            <p className="user-email">{user?.email}</p>
+          </div>
+          <button onClick={handleLogout} className="text-secondary hover:text-navy cursor-pointer" title="Logout">
+            🚪
+          </button>
         </div>
-      </header>
+      </aside>
 
-      <div className="academic-container py-8 flex-1">
-        {showAI && (
-          <div className="mb-8">
-            <AIAssistant currentExperiment={null} />
-          </div>
-        )}
-
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="mb-0">{t('dashboard.createNewRoom')}</h2>
+      <main className="dashboard-main">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="mb-0">Research Summary</h1>
           <button
             onClick={() => navigate('/create-room')}
             className="btn-primary"
           >
-            + {t('dashboard.createRoom')}
+            + Create New Room
           </button>
         </div>
 
+        <div className="stats-grid">
+          <div className="stat-card">
+            <p className="stat-value">{rooms.length}</p>
+            <p className="stat-label">Total Rooms</p>
+          </div>
+          <div className="stat-card">
+            <p className="stat-value">{totalParticipants}</p>
+            <p className="stat-label">Participants</p>
+          </div>
+          <div className="stat-card">
+            <p className="stat-value">{totalResults}</p>
+            <p className="stat-label">Data Points</p>
+          </div>
+        </div>
+
+        {showAI && (
+          <div className="mb-8 animate-fade-up">
+            <AIAssistant currentExperiment={null} onClose={() => setShowAI(false)} />
+          </div>
+        )}
+
         {rooms.length === 0 ? (
-          <div className="text-center py-12 bg-white border border-border rounded">
-            <p className="text-gray-500">{t('dashboard.noRooms')}</p>
+          <div className="text-center py-16 bg-white border border-border rounded-xl">
+            <p className="text-text-muted">No research rooms created yet.</p>
+            <button
+              onClick={() => navigate('/create-room')}
+              className="btn-outline mt-4"
+            >
+              Start First Study
+            </button>
           </div>
         ) : (
-          <>
+          <div className="space-y-12">
             {activeRooms.length > 0 && (
-              <section className="mb-8">
-                <h3 className="text-lg font-semibold text-navy-900 mb-4">
-                  {t('dashboard.activeRooms')}
+              <section className="animate-fade-up">
+                <h3 className="mb-6 flex items-center gap-3">
+                  <span className="w-2 h-2 bg-teal rounded-full animate-pulse"></span>
+                  Active Studies
                 </h3>
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                   {activeRooms.map((room) => (
                     <RoomCard
                       key={room.id}
@@ -173,11 +207,9 @@ export function DashboardPage() {
             )}
 
             {pastRooms.length > 0 && (
-              <section>
-                <h3 className="text-lg font-semibold text-navy-900 mb-4">
-                  {t('dashboard.pastRooms')}
-                </h3>
-                <div className="grid gap-4">
+              <section className="animate-fade-up">
+                <h3 className="mb-6">{t('dashboard.pastRooms')}</h3>
+                <div className="grid gap-6">
                   {pastRooms.map((room) => (
                     <RoomCard
                       key={room.id}
@@ -190,9 +222,9 @@ export function DashboardPage() {
                 </div>
               </section>
             )}
-          </>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
@@ -212,69 +244,52 @@ function RoomCard({ room, stats, onClose, onExport, onViewLive, t }: RoomCardPro
   const experimentName = experimentData?.name || room.experiment || 'No experiment';
 
   return (
-    <div className="bg-white rounded p-6 border border-border">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="mb-0">
-              {room.title || `Room ${room.code}`}
-            </h3>
-            {room.status === 'active' && (
-              <span className="bg-success/10 text-success text-xs px-2 py-1 rounded">
-                LIVE
-              </span>
-            )}
-            {room.status === 'draft' && (
-              <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
-                DRAFT
-              </span>
-            )}
+    <div className="room-card-v2">
+      <div className="room-info">
+        <div className="room-title-area">
+          <div className="flex items-center gap-3 mb-1">
+            <span className={`room-status-pill ${room.status === 'active' ? 'status-active' : room.status === 'draft' ? 'status-draft' : 'status-closed'}`}>
+              {room.status}
+            </span>
+            <h3>{room.title || `Study: ${experimentName}`}</h3>
           </div>
-          <p className="text-text-secondary text-sm">
-            {t('dashboard.roomCode')}: <span className="font-mono font-bold text-text-primary">{room.code}</span>
+          <p className="text-text-muted text-sm flex items-center gap-2">
+            Code: <span className="room-code-badge">{room.code}</span>
           </p>
         </div>
-        <span className={`text-sm ${isActive ? 'text-green-600' : 'text-gray-500'}`}>
-          {isActive ? t('dashboard.status.active') : t('dashboard.status.closed')}
-        </span>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-navy-900">{stats.participants}</p>
-          <p className="text-sm text-gray-500">{t('dashboard.participants')}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-navy-900">{stats.results}</p>
-          <p className="text-sm text-gray-500">{t('dashboard.results')}</p>
+        <div className="flex gap-8 items-center pr-4">
+          <div className="text-center">
+            <p className="font-bold text-navy text-xl">{stats.participants}</p>
+            <p className="label" style={{ fontSize: '0.65rem' }}>Users</p>
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-navy text-xl">{stats.results}</p>
+            <p className="label" style={{ fontSize: '0.65rem' }}>Data</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <span className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">
-          {experimentName}
-        </span>
-      </div>
-
-      <div className="flex gap-2">
+      <div className="room-actions">
         {isActive && onViewLive && (
           <button
             onClick={onViewLive}
-            className="flex-1 btn-primary"
+            className="btn-primary"
           >
-            View Room
+            Launch Live Room
           </button>
         )}
         <button
           onClick={onExport}
-          className="flex-1 btn-outline"
+          className="btn-outline btn-csv"
         >
-          {t('dashboard.exportCSV')}
+          <span>📉</span> Export CSV
         </button>
         {isActive && onClose && (
           <button
             onClick={onClose}
-            className="flex-1 bg-surface border border-error/20 text-error py-2 rounded hover:bg-error/5 transition-colors text-sm font-medium"
+            className="btn-outline"
+            style={{ color: 'var(--error)', borderColor: 'rgba(220,38,38,0.2)' }}
           >
             {t('dashboard.closeRoom')}
           </button>

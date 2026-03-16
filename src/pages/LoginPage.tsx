@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { signIn } from '../lib/supabase';
+import { signIn, resetPasswordForEmail } from '../lib/supabase';
+import './AuthPages.css';
 
 export function LoginPage() {
   const { t } = useLanguage();
@@ -10,6 +11,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [showReset, setShowReset] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,75 +20,112 @@ export function LoginPage() {
     setError('');
 
     try {
-      const data = await signIn(email, password);
-
-      if (data.user) {
-        navigate('/dashboard');
+      if (showReset) {
+        await resetPasswordForEmail(email);
+        setResetSent(true);
+      } else {
+        const data = await signIn(email, password);
+        if (data.user) navigate('/dashboard');
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Action failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded border border-border p-8">
-        <h2 className="text-center mb-6">
-          {t('login.title')}
-        </h2>
+    <div className="auth-page animate-fade-in">
+      <aside className="auth-sidebar">
+        <img
+          src="/scientific_lab_auth_bg_1773641959796.png"
+          alt="Lab background"
+          className="auth-sidebar-img"
+        />
+        <div className="auth-sidebar-content">
+          <h1>Scientific Precision Meets Clarity.</h1>
+          <p>Join the next generation of cognitive researchers using PsychoLab to design, deploy, and analyze behavioral data with unprecedented ease.</p>
+        </div>
+      </aside>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('login.email')}
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-border text-base rounded focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-              required
-            />
-          </div>
+      <main className="auth-main">
+        <div className="auth-form-container">
+          <h2>{showReset ? 'Reset Password' : t('login.title')}</h2>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('login.password')}
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-border text-base rounded focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-              {error}
+          {resetSent ? (
+            <div className="msg msg-info">
+              Check your email for a password reset link.
+              <button
+                onClick={() => { setShowReset(false); setResetSent(false); }}
+                className="auth-link block mt-4"
+              >
+                Back to Login
+              </button>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="config-field">
+                <label className="config-label">{t('login.email')}</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-premium"
+                  placeholder="researcher@university.edu"
+                  required
+                />
+              </div>
+
+              {!showReset && (
+                <div className="config-field">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="config-label mb-0">{t('login.password')}</label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowReset(true); setError(''); }}
+                      className="text-xs text-teal hover:underline"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-premium"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              )}
+
+              {error && <div className="msg msg-error">{error}</div>}
+
+              <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg">
+                {loading ? 'Processing...' : (showReset ? 'Send Reset Link' : t('login.submit'))}
+              </button>
+
+              {showReset && (
+                <button
+                  type="button"
+                  onClick={() => { setShowReset(false); setError(''); }}
+                  className="text-sm text-text-muted hover:text-teal w-full text-center"
+                >
+                  Back to Login
+                </button>
+              )}
+            </form>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary disabled:opacity-50"
-          >
-            {loading ? t('common.loading') : t('login.submit')}
-          </button>
-        </form>
-
-        <p className="text-center mt-6 text-text-secondary text-sm">
-          {t('login.noAccount')}{' '}
-          <Link to="/signup" className="text-secondary hover:text-teal-700 font-medium hover:underline transition-colors">
-            {t('login.signUp')}
-          </Link>
-        </p>
-      </div>
+          {!showReset && (
+            <p className="mt-8 text-center text-text-muted">
+              {t('login.noAccount')}{' '}
+              <Link to="/signup" className="auth-link">{t('login.signUp')}</Link>
+            </p>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

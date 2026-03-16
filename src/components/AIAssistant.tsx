@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLanguage } from '../context/LanguageContext';
+import './AIAssistant.css';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -39,7 +39,6 @@ export function AIAssistant({
   participantCount = 0,
   onClose
 }: AIAssistantProps) {
-  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -198,63 +197,47 @@ export function AIAssistant({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg border border-gray-200">
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-navy-900 text-white rounded-t-lg">
-        <h3 className="font-semibold text-sm">{t('ai.assistant.title')}</h3>
+    <div className="ai-container h-full">
+      <div className="ai-header">
+        <h3>AI Methodology Assistant</h3>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200"
-          >
-            ✕
-          </button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[250px]">
+      <div className="ai-messages h-full max-h-[300px]">
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`ai-msg ${message.role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`}
           >
-            <div
-              className={`max-w-[85%] p-2.5 rounded-lg ${message.role === 'user'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-gray-100 text-gray-800'
-                }`}
-            >
-              <p className="whitespace-pre-wrap text-xs">{message.content}</p>
-            </div>
+            <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 p-2.5 rounded-lg">
-              <p className="text-xs text-gray-500">{t('ai.assistant.thinking')}</p>
-            </div>
+          <div className="ai-msg ai-msg-bot">
+            <p className="ai-thinking">Consulting research database...</p>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t('ai.assistant.placeholder')}
-            className="flex-1 p-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-teal-500"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="bg-teal-600 text-white px-3 py-2 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 text-sm"
-          >
-            {t('ai.assistant.send')}
-          </button>
-        </div>
+      <form onSubmit={handleSubmit} className="ai-input-area">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask about trials, ISI, or citations..."
+          className="ai-input"
+          disabled={isLoading}
+        />
+        <button
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          className="ai-send"
+        >
+          Send
+        </button>
       </form>
     </div>
   );

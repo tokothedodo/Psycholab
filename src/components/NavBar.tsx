@@ -1,7 +1,10 @@
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { supabase, signOut } from '../lib/supabase';
 import type { Language } from '../types';
+import type { User } from '@supabase/supabase-js';
+import './NavBar.css';
 
 const LANGUAGES: { code: Language; name: string; flag: string }[] = [
     { code: 'en', name: 'EN', flag: '🇬🇧' },
@@ -12,52 +15,89 @@ const LANGUAGES: { code: Language; name: string; flag: string }[] = [
 
 export function NavBar() {
     const { language, setLanguage, t } = useLanguage();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [langOpen, setLangOpen] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        // Get initial session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Hide Navbar during experiments (preview or participant mode)
+    const islanded = location.pathname.includes('/experiments/') || location.pathname.includes('/room/');
+    if (islanded) return null;
+
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/');
+    };
 
     const currentLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
 
+    // Truncate email if too long
+    const displayEmail = user?.email && user.email.length > 20
+        ? `${user.email.substring(0, 17)}...`
+        : user?.email;
+
     return (
-        <nav className="bg-primary text-white border-b border-primary/80">
-            <div className="academic-container flex items-center justify-between h-14">
+        <nav className="navbar">
+            <div className="academic-container navbar-container">
                 {/* Logo + Title */}
-                <Link to="/" className="flex items-center gap-2 text-white no-underline hover:opacity-90 transition-opacity">
-                    <img src="/Psycholab.svg" alt="PsychoLab" className="h-7 w-auto" />
-                    <span className="font-semibold text-lg tracking-tight">PsychoLab.ge</span>
+                <Link to="/" className="nav-logo">
+                    PsychoLab<span className="nav-logo-dot">.</span>
                 </Link>
 
                 {/* Navigation Links */}
-                <div className="flex items-center gap-6">
-                    <Link
-                        to="/experiments"
-                        className="text-white/80 hover:text-white text-sm no-underline transition-colors"
-                    >
+                <div className="nav-links">
+                    <Link to="/experiments" className="nav-link">
                         {t('nav.experiments')}
                     </Link>
 
-                    <Link
-                        to="/login"
-                        className="text-white/80 hover:text-white text-sm no-underline transition-colors"
-                    >
-                        {t('nav.login')}
-                    </Link>
+                    {user ? (
+                        <>
+                            <span className="nav-user-email" title={user.email}>
+                                {displayEmail}
+                            </span>
+                            <button onClick={handleLogout} className="btn-outline">
+                                {t('nav.logout') || 'Log out'}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login" className="nav-link">
+                                {t('nav.login')}
+                            </Link>
+                            <Link to="/signup" className="btn-primary">
+                                {t('nav.signup') || 'Sign up'}
+                            </Link>
+                        </>
+                    )}
 
                     {/* Language Selector */}
                     <div className="relative">
-                        <button
+                        <div
                             onClick={() => setLangOpen(!langOpen)}
-                            className="flex items-center gap-1 text-sm text-white/80 hover:text-white transition-colors bg-transparent border border-white/20 rounded px-2 py-1"
+                            className="lang-selector-pill"
                         >
                             <span>{currentLang.flag}</span>
                             <span>{currentLang.name}</span>
-                            <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
+                        </div>
 
                         {langOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />
-                                <div className="absolute right-0 top-full mt-1 bg-white rounded shadow-lg border border-border z-50 min-w-[120px]">
+                                <div className="lang-dropdown">
                                     {LANGUAGES.map(lang => (
                                         <button
                                             key={lang.code}
@@ -65,8 +105,7 @@ export function NavBar() {
                                                 setLanguage(lang.code);
                                                 setLangOpen(false);
                                             }}
-                                            className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-surface transition-colors ${language === lang.code ? 'text-primary font-medium' : 'text-text'
-                                                }`}
+                                            className={`lang-option ${language === lang.code ? 'active' : ''}`}
                                         >
                                             <span>{lang.flag}</span>
                                             <span>{lang.name}</span>
