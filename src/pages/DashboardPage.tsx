@@ -3,15 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getRooms, getUniqueParticipants, getRoomResultsCount, closeRoom, getResults, getUser, signOut, type Room, type Result } from '../lib/supabase';
 import { AIAssistant } from '../components/AIAssistant';
-
-const EXPERIMENT_NAMES: Record<string, string> = {
-  'muller-lyer': 'Müller-Lyer Illusion',
-  'stroop': 'Stroop Test',
-  'anchoring': 'Anchoring Bias',
-  'ultimatum': 'Ultimatum Game',
-  'digit-span': 'Digit Span',
-  'ponzo': 'Ponzo Illusion',
-};
+import { getExperimentById } from '../data/experiments';
 
 export function DashboardPage() {
   const { t } = useLanguage();
@@ -101,7 +93,7 @@ export function DashboardPage() {
     navigate('/');
   };
 
-  const activeRooms = rooms.filter((r) => r.status === 'open');
+  const activeRooms = rooms.filter((r) => r.status === 'active' || r.status === 'draft');
   const pastRooms = rooms.filter((r) => r.status === 'closed');
 
   if (loading) {
@@ -139,7 +131,7 @@ export function DashboardPage() {
       <div className="academic-container py-8 flex-1">
         {showAI && (
           <div className="mb-8">
-            <AIAssistant currentExperiments={[]} />
+            <AIAssistant currentExperiment={null} />
           </div>
         )}
 
@@ -172,6 +164,7 @@ export function DashboardPage() {
                       stats={roomStats[room.id] || { participants: 0, results: 0 }}
                       onClose={() => handleCloseRoom(room.id)}
                       onExport={() => handleExportCSV(room)}
+                      onViewLive={() => navigate(`/room-live/${room.code}`)}
                       t={t}
                     />
                   ))}
@@ -209,11 +202,14 @@ interface RoomCardProps {
   stats: { participants: number; results: number };
   onClose?: () => void;
   onExport: () => void;
+  onViewLive?: () => void;
   t: (key: string) => string;
 }
 
-function RoomCard({ room, stats, onClose, onExport, t }: RoomCardProps) {
-  const isActive = room.status === 'open';
+function RoomCard({ room, stats, onClose, onExport, onViewLive, t }: RoomCardProps) {
+  const isActive = room.status === 'active' || room.status === 'draft';
+  const experimentData = getExperimentById(room.experiment);
+  const experimentName = experimentData?.name || room.experiment || 'No experiment';
 
   return (
     <div className="bg-white rounded p-6 border border-border">
@@ -221,11 +217,16 @@ function RoomCard({ room, stats, onClose, onExport, t }: RoomCardProps) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <h3 className="mb-0">
-              {(room as Room & { title?: string }).title || `Room ${room.code}`}
+              {room.title || `Room ${room.code}`}
             </h3>
-            {isActive && (
+            {room.status === 'active' && (
               <span className="bg-success/10 text-success text-xs px-2 py-1 rounded">
-                {t('dashboard.live')}
+                LIVE
+              </span>
+            )}
+            {room.status === 'draft' && (
+              <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
+                DRAFT
               </span>
             )}
           </div>
@@ -238,7 +239,7 @@ function RoomCard({ room, stats, onClose, onExport, t }: RoomCardProps) {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="text-center">
           <p className="text-2xl font-bold text-navy-900">{stats.participants}</p>
           <p className="text-sm text-gray-500">{t('dashboard.participants')}</p>
@@ -247,24 +248,23 @@ function RoomCard({ room, stats, onClose, onExport, t }: RoomCardProps) {
           <p className="text-2xl font-bold text-navy-900">{stats.results}</p>
           <p className="text-sm text-gray-500">{t('dashboard.results')}</p>
         </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-navy-900">{room.experiments.length}</p>
-          <p className="text-sm text-gray-500">{t('dashboard.experiments')}</p>
-        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        {room.experiments.map((exp) => (
-          <span
-            key={exp}
-            className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full"
-          >
-            {EXPERIMENT_NAMES[exp] || exp}
-          </span>
-        ))}
+        <span className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">
+          {experimentName}
+        </span>
       </div>
 
       <div className="flex gap-2">
+        {isActive && onViewLive && (
+          <button
+            onClick={onViewLive}
+            className="flex-1 btn-primary"
+          >
+            View Room
+          </button>
+        )}
         <button
           onClick={onExport}
           className="flex-1 btn-outline"

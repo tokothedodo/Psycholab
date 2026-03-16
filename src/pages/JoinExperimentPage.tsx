@@ -13,6 +13,38 @@ import {
   UltimatumExperiment,
   DigitSpanExperiment,
   PonzoExperiment,
+  ReactionTimeExperiment,
+  TrolleyExperiment,
+  DictatorExperiment,
+  ChangeBlindnessExperiment,
+  JNDExperiment,
+  EbbinghausExperiment,
+  KanizsaExperiment,
+  InattentionalExperiment,
+  SerialPositionExperiment,
+  SternbergExperiment,
+  DRMExperiment,
+  FramingExperiment,
+  BystanderExperiment,
+  LossAversionExperiment,
+  TrustExperiment,
+  RubinVaseExperiment,
+  ZollnerExperiment,
+  AvailabilityExperiment,
+  WasonExperiment,
+  LindaExperiment,
+  HindsightExperiment,
+  SunkCostExperiment,
+  IowaGamblingExperiment,
+  PrisonersDilemmaExperiment,
+  AschExperiment,
+  IATExperiment,
+  FalseConsensusExperiment,
+  McGurkExperiment,
+  RubberHandExperiment,
+  ColorPerceptionExperiment,
+  MotionAftereffectExperiment,
+  HollowFaceExperiment,
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
@@ -21,12 +53,44 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   participantId: string;
   roomId: string;
 }>> = {
-  'muller-lyer': MullerLyerExperiment,
-  'stroop': StroopExperiment,
-  'anchoring': AnchoringExperiment,
-  'ultimatum': UltimatumExperiment,
-  'digit-span': DigitSpanExperiment,
-  'ponzo': PonzoExperiment,
+  'muller-lyer-illusion': MullerLyerExperiment,
+  'stroop-color-word-interference-task': StroopExperiment,
+  'anchoring-and-adjustment-heuristic-task': AnchoringExperiment,
+  'ultimatum-game': UltimatumExperiment,
+  'digit-span-task': DigitSpanExperiment,
+  'ponzo-illusion': PonzoExperiment,
+  'simple-and-choice-reaction-time-task': ReactionTimeExperiment,
+  'trolley-problem-paradigm': TrolleyExperiment,
+  'dictator-game': DictatorExperiment,
+  'change-detection-flicker-paradigm': ChangeBlindnessExperiment,
+  'difference-threshold-staircase-paradigm': JNDExperiment,
+  'ebbinghaus-illusion': EbbinghausExperiment,
+  'kanizsa-illusory-contour-paradigm': KanizsaExperiment,
+  'inattentional-blindness-paradigm': InattentionalExperiment,
+  'serial-position-effect-paradigm': SerialPositionExperiment,
+  'sternberg-memory-scanning-task': SternbergExperiment,
+  'deese-roediger-mcdermott-false-memory-paradigm': DRMExperiment,
+  'attribute-framing-effect-paradigm': FramingExperiment,
+  'bystander-intervention-paradigm': BystanderExperiment,
+  'loss-aversion-task': LossAversionExperiment,
+  'investment-game': TrustExperiment,
+  'rubin-figure-ground-paradigm': RubinVaseExperiment,
+  'zollner-illusion': ZollnerExperiment,
+  'availability-heuristic-judgment-task': AvailabilityExperiment,
+  'wason-selection-task': WasonExperiment,
+  'conjunction-fallacy-paradigm': LindaExperiment,
+  'hindsight-bias-paradigm': HindsightExperiment,
+  'sunk-cost-effect-paradigm': SunkCostExperiment,
+  'iowa-gambling-task': IowaGamblingExperiment,
+  'iterated-prisoners-dilemma': PrisonersDilemmaExperiment,
+  'asch-conformity-paradigm': AschExperiment,
+  'implicit-association-test': IATExperiment,
+  'false-consensus-effect-paradigm': FalseConsensusExperiment,
+  'mcgurk-effect': McGurkExperiment,
+  'rubber-hand-illusion': RubberHandExperiment,
+  'color-category-perception-paradigm': ColorPerceptionExperiment,
+  'motion-aftereffect-paradigm': MotionAftereffectExperiment,
+  'hollow-face-illusion': HollowFaceExperiment,
 };
 
 export function JoinExperimentPage() {
@@ -37,7 +101,7 @@ export function JoinExperimentPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentExperimentIndex, setCurrentExperimentIndex] = useState(0);
+  const [completed, setCompleted] = useState(false);
   const [participantId] = useState(() => `P_${Math.random().toString(36).substr(2, 9)}`);
   const [showLanguagePicker, setShowLanguagePicker] = useState(true);
 
@@ -83,16 +147,12 @@ export function JoinExperimentPage() {
         language,
         timestamp: results.timestamp,
       });
+      setCompleted(true);
     } catch (error) {
       console.error('Error saving result:', error);
-    }
-
-    if (currentExperimentIndex < room.experiments.length - 1) {
-      setCurrentExperimentIndex((prev) => prev + 1);
+      setCompleted(true); // Still mark complete even if save fails
     }
   };
-
-  const isComplete = room && currentExperimentIndex >= room.experiments.length;
 
   if (loading) {
     return (
@@ -153,7 +213,7 @@ export function JoinExperimentPage() {
     );
   }
 
-  if (isComplete) {
+  if (completed) {
     return (
       <div className="min-h-screen bg-white">
         <header className="bg-navy-900 text-white py-6">
@@ -181,14 +241,18 @@ export function JoinExperimentPage() {
     );
   }
 
-  const currentExperimentId = room!.experiments[currentExperimentIndex];
+  // Single experiment — use room.experiment directly
+  const currentExperimentId = room!.experiment;
   const currentExperiment = getExperimentById(currentExperimentId);
   const ExperimentComponent = currentExperimentId && EXPERIMENT_COMPONENTS[currentExperimentId];
 
   if (!currentExperiment || !ExperimentComponent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Experiment not found</p>
+        <div className="text-center">
+          <p className="text-gray-600 mb-2">Experiment not found: {currentExperimentId}</p>
+          <p className="text-gray-400 text-sm">This experiment may not be implemented yet.</p>
+        </div>
       </div>
     );
   }
@@ -199,9 +263,6 @@ export function JoinExperimentPage() {
         <div className="max-w-4xl mx-auto px-4 flex justify-between items-center">
           <div>
             <h1 className="font-bold">{t('app.title')}</h1>
-            <p className="text-teal-400 text-sm">
-              {currentExperimentIndex + 1} / {room!.experiments.length}
-            </p>
           </div>
           <div className="flex items-center gap-2">
             <select

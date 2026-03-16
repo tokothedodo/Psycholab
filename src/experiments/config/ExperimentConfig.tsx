@@ -68,19 +68,39 @@ export function ExperimentConfigPanel({
 
     const renderInputField = () => {
       const varType = variableConfig.type as string;
-      
+
       switch (varType) {
         case 'number':
+          const step = (variableConfig.step as number) || 1;
+          const min = variableConfig.min as number;
+          const max = variableConfig.max as number;
+
           return (
             <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={value as number}
-                onChange={(e) => handleChange(variableId, Number(e.target.value))}
-                min={variableConfig.min as number}
-                max={variableConfig.max as number}
-                className="w-24 p-2 border border-gray-200 rounded focus:border-teal-500 focus:outline-none"
-              />
+              <div className="flex items-center border border-gray-200 rounded overflow-hidden">
+                <button
+                  onClick={() => handleChange(variableId, Math.max(min ?? -Infinity, (value as number) - step))}
+                  className="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 text-gray-600 transition-colors"
+                  type="button"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={value as number}
+                  onChange={(e) => handleChange(variableId, Number(e.target.value))}
+                  min={min}
+                  max={max}
+                  className="w-20 p-2 text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  onClick={() => handleChange(variableId, Math.min(max ?? Infinity, (value as number) + step))}
+                  className="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l border-gray-200 text-gray-600 transition-colors"
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
               {(variableConfig.unit as string) && <span className="text-gray-500 text-sm">{variableConfig.unit as string}</span>}
             </div>
           );
@@ -107,14 +127,12 @@ export function ExperimentConfigPanel({
           return (
             <button
               onClick={() => handleChange(variableId, !value)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                value ? 'bg-teal-600' : 'bg-gray-200'
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-teal-600' : 'bg-gray-200'
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  value ? 'translate-x-6' : 'translate-x-1'
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'
+                  }`}
               />
             </button>
           );
@@ -126,7 +144,7 @@ export function ExperimentConfigPanel({
               onChange={(e) => handleChange(variableId, e.target.value)}
               className="w-full p-2 border border-gray-200 rounded focus:border-teal-500 focus:outline-none"
             >
-              {(variableConfig.options as Array<{value: string, labelKey: string}>)?.map((opt) => (
+              {(variableConfig.options as Array<{ value: string, labelKey: string }>)?.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {t(opt.labelKey)}
                 </option>
@@ -138,7 +156,7 @@ export function ExperimentConfigPanel({
           const selected = (value as string[]) || [];
           return (
             <div className="space-y-2">
-              {((variableConfig.options as Array<{value: string, labelKey: string}>) || []).map((opt) => (
+              {((variableConfig.options as Array<{ value: string, labelKey: string }>) || []).map((opt) => (
                 <label key={opt.value} className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -241,21 +259,19 @@ export function ExperimentConfigPanel({
       <div className="border-b">
         <button
           onClick={() => setExpandedSection('universal')}
-          className={`px-4 py-3 text-sm font-medium flex-1 ${
-            expandedSection === 'universal'
+          className={`px-4 py-3 text-sm font-medium flex-1 ${expandedSection === 'universal'
               ? 'border-b-2 border-teal-500 text-teal-600'
               : 'text-gray-500'
-          }`}
+            }`}
         >
           Universal Settings
         </button>
         <button
           onClick={() => setExpandedSection('experiment')}
-          className={`px-4 py-3 text-sm font-medium flex-1 ${
-            expandedSection === 'experiment'
+          className={`px-4 py-3 text-sm font-medium flex-1 ${expandedSection === 'experiment'
               ? 'border-b-2 border-teal-500 text-teal-600'
               : 'text-gray-500'
-          }`}
+            }`}
         >
           Experiment Settings
         </button>

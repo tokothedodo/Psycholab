@@ -10,6 +10,7 @@ import {
   JoinExperimentPage,
   ExperimentCatalogPage,
   ExperimentPage,
+  RoomLivePage,
 } from './pages';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/experiments" element={<ExperimentCatalogPage />} />
           <Route path="/experiments/:id" element={<ExperimentPage />} />
           <Route path="/room/:code" element={<JoinExperimentPage />} />
+          <Route path="/room-live/:code" element={<RoomLivePage />} />
         </Routes>
       </LanguageProvider>
     </BrowserRouter>

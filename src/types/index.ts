@@ -12,10 +12,11 @@ export interface Room {
   id: string;
   researcher_id: string;
   code: string;
-  experiments: string[];
-  status: 'active' | 'closed';
+  experiment: string;
+  config: Record<string, unknown>;
+  status: 'draft' | 'active' | 'closed';
   created_at: string;
-  title: string;
+  title?: string;
 }
 
 export interface Result {
@@ -30,13 +31,7 @@ export interface Result {
   timestamp: string;
 }
 
-export type ExperimentType =
-  | 'muller-lyer-illusion'
-  | 'stroop-color-word-interference-task'
-  | 'anchoring-and-adjustment-heuristic-task'
-  | 'ultimatum-game'
-  | 'digit-span-task'
-  | 'ponzo-illusion';
+export type ExperimentType = string;
 
 export interface ExperimentConfig {
   type: ExperimentType;
