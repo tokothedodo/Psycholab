@@ -71,9 +71,9 @@ export function DashboardPage() {
       const results = await getResults(room.id);
 
       const csvContent = [
-        'participant_id,language,experiment_name,response_time_ms,answer,correct_answer,timestamp,trial_data',
+        'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,answer,correct_answer,timestamp,trial_data',
         ...results.map((r: Result) =>
-          `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},"${String(r.answer).replace(/"/g, '""')}","${String(r.correct_answer).replace(/"/g, '""')}",${r.timestamp},"${r.trial_data ? JSON.stringify(r.trial_data).replace(/"/g, '""') : ''}"`
+          `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.accuracy || ''},${r.total_trials || ''},"${String(r.answer).replace(/"/g, '""')}","${String(r.correct_answer).replace(/"/g, '""')}",${r.timestamp},"${r.trial_data ? JSON.stringify(r.trial_data).replace(/"/g, '""') : ''}"`
         ),
       ].join('\n');
 
