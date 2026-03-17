@@ -66,6 +66,9 @@ export function NavBar() {
 
                     {user ? (
                         <>
+                            <Link to="/dashboard" className="nav-link">
+                                {t('nav.dashboard') || 'Dashboard'}
+                            </Link>
                             <span className="nav-user-email" title={user.email}>
                                 {displayEmail}
                             </span>

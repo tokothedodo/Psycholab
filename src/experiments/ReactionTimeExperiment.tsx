@@ -52,6 +52,8 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
         totalTrials: newResults.length,
         responseTimeMs: Math.round(avgRt),
         accuracy: 100,
+        answer: Math.round(avgRt),
+        correctAnswer: 'mean_rt',
         trialData: newResults.map(r => ({
           trialNumber: r.trial,
           responseTimeMs: Math.round(r.rt),

@@ -75,8 +75,14 @@ export function DigitSpanExperiment({ experiment, onComplete, participantId, roo
             responseTimeMs: 0,
             accuracy: maxLevel,
             answer: maxLevel,
-            correctAnswer: 'working_memory_span',
-            trialData: [],
+            correctAnswer: 'digit_span',
+            trialData: sequence.map((val, idx) => ({
+              trialNumber: idx + 1,
+              responseTimeMs: 0,
+              stimulus: 'sequence',
+              answer: input[idx] || 0,
+              correctAnswer: val
+            })),
             debrief: 'Task complete. Your working memory span is ' + maxLevel + ' digits.'
           } as any);
         } else {

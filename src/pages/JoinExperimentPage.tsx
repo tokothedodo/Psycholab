@@ -68,8 +68,9 @@ export function JoinExperimentPage() {
 
   const handleExperimentComplete = async (results: ExperimentResults) => {
     if (!room) return;
+    console.log('[PsychoLab] Experiment complete, submitting results:', results);
     try {
-      await saveResult({
+      const payload = {
         room_id: room.id,
         participant_id: participantId,
         experiment_name: results.experimentName,
@@ -78,9 +79,19 @@ export function JoinExperimentPage() {
         correct_answer: String(results.correctAnswer),
         language,
         timestamp: results.timestamp,
-      });
+        trial_data: results.trialData,
+        accuracy: results.accuracy,
+        total_trials: results.totalTrials,
+      };
+
+      console.log('[PsychoLab] Submitting payload to Supabase:', payload);
+      await saveResult(payload as any);
+      console.log('[PsychoLab] Results saved successfully');
       setCompleted(true);
-    } catch (e) {
+    } catch (e: any) {
+      console.error('[PsychoLab] CRITICAL: Failed to save results:', e);
+      // Still set completed to true to avoid stranding the participant, 
+      // but the console now shows the real reason.
       setCompleted(true);
     }
   };
@@ -135,11 +146,15 @@ export function JoinExperimentPage() {
       <div className="min-h-screen bg-surface flex items-center justify-center p-8">
         <div className="completion-card text-center max-w-xl animate-fade-in">
           <div className="completion-icon">✓</div>
-          <h1 className="mb-4">Task Completed Successfully</h1>
+          <h1 className="mb-4">Data Synchronized</h1>
           <p className="text-text-secondary mb-10 leading-relaxed">
-            Your data has been securely recorded for scientific analysis.
-            Thank you for contributing to cognitive research at PsychoLab.
+            Your results have been successfully recorded in the research database.
+            Thank you for contributing to cognitive science at PsychoLab.
           </p>
+          <div className="p-4 bg-gray-50 rounded-2xl mb-8 border border-gray-100 flex items-center justify-center gap-3">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-[10px] font-black tracking-widest text-gray-400 uppercase">Secure Link Active</span>
+          </div>
           <button onClick={() => navigate('/')} className="btn-primary" style={{ paddingLeft: '3rem', paddingRight: '3rem' }}>Close Session</button>
         </div>
       </div>

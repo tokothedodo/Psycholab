@@ -84,6 +84,8 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
         totalTrials: newResults.length,
         responseTimeMs: Math.round(avgRt),
         accuracy,
+        answer: Math.round(avgIncongruentRt - avgCongruentRt),
+        correctAnswer: 'stroop_effect_ms',
         trialData: newResults.map(r => ({
           trialNumber: r.trial,
           responseTimeMs: Math.round(r.rt),

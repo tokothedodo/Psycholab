@@ -72,9 +72,19 @@ export function ExperimentPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="fixed top-0 left-0 w-full z-[100] px-8 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <span className="font-mono text-sm font-bold text-gray-900 tracking-tight">
-          PREVIEW // <span className="text-blue-600">{experiment.name}</span>
-        </span>
+        <div className="flex items-center gap-6">
+          <span className="font-mono text-sm font-bold text-gray-900 tracking-tight">
+            PREVIEW // <span className="text-blue-600">{experiment.name}</span>
+          </span>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/experiments')} className="px-3 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-900 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all border border-gray-100">
+              EXIT PREVIEW
+            </button>
+            <button onClick={() => navigate('/dashboard')} className="px-3 py-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all border border-blue-100">
+              DASHBOARD
+            </button>
+          </div>
+        </div>
         <span className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
           Sandboxed Environment
         </span>

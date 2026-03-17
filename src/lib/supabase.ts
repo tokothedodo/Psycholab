@@ -33,6 +33,8 @@ export interface Result {
   language: string;
   timestamp: string;
   trial_data?: unknown;
+  accuracy?: number;
+  total_trials?: number;
 }
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
