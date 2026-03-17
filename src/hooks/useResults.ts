@@ -18,6 +18,8 @@ export function useResults() {
             answer: String(results.answer), // Ensure it's stringified
             correct_answer: String(results.correctAnswer),
             language: results.language,
+            accuracy: results.accuracy,
+            total_trials: results.totalTrials,
             timestamp: results.timestamp,
         };
 

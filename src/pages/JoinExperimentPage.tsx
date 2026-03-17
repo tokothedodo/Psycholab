@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { getRoomByCode, saveResult, type Room } from '../lib/supabase';
+import { getRoomByCode, type Room } from '../lib/supabase';
+import { useResults } from '../hooks/useResults';
 import type { Language } from '../types';
 import type { ExperimentResults } from '../experiments/ExperimentWrapper';
 import type { Experiment } from '../data/experiments';
@@ -39,6 +40,7 @@ export function JoinExperimentPage() {
   const [completed, setCompleted] = useState(false);
   const [participantId] = useState(() => `P_${Math.random().toString(36).substr(2, 9)}`);
   const [showLanguagePicker, setShowLanguagePicker] = useState(true);
+  const { submitResults } = useResults();
 
   const languages: { code: Language; name: string; flag: string }[] = [
     { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -69,31 +71,22 @@ export function JoinExperimentPage() {
   const handleExperimentComplete = async (results: ExperimentResults) => {
     if (!room) return;
     console.log('[PsychoLab] Experiment complete, submitting results:', results);
-    try {
-      const payload = {
-        room_id: room.id,
-        participant_id: participantId,
-        experiment_name: results.experimentName,
-        response_time_ms: results.responseTimeMs,
-        answer: String(results.answer),
-        correct_answer: String(results.correctAnswer),
-        language,
-        timestamp: results.timestamp,
-        trial_data: results.trialData,
-        accuracy: results.accuracy,
-        total_trials: results.totalTrials,
-      };
 
-      console.log('[PsychoLab] Submitting payload to Supabase:', payload);
-      await saveResult(payload as any);
+    // Inject current room and participant info if not already there
+    const finalResults = {
+      ...results,
+      roomId: room.id,
+      participantId: participantId,
+      language: language
+    };
+
+    const success = await submitResults(finalResults);
+    if (success) {
       console.log('[PsychoLab] Results saved successfully');
-      setCompleted(true);
-    } catch (e: any) {
-      console.error('[PsychoLab] CRITICAL: Failed to save results:', e);
-      // Still set completed to true to avoid stranding the participant, 
-      // but the console now shows the real reason.
-      setCompleted(true);
+    } else {
+      console.error('[PsychoLab] CRITICAL: Failed to save results after all attempts');
     }
+    setCompleted(true);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-surface"><div className="animate-pulse font-mono text-navy">SYNCING RESEARCH PROTOCOL...</div></div>;

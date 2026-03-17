@@ -15,11 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- 3. Users can read their own record
+DROP POLICY IF EXISTS "Users can read own record" ON users;
 CREATE POLICY "Users can read own record"
 ON users FOR SELECT
 USING (auth.uid() = id);
 
 -- 4. Users can insert their own record
+DROP POLICY IF EXISTS "Users can insert own record" ON users;
 CREATE POLICY "Users can insert own record"
 ON users FOR INSERT
 WITH CHECK (auth.uid() = id);
@@ -39,19 +41,23 @@ CREATE TABLE IF NOT EXISTS rooms (
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 
 -- 7. RLS policies for rooms
+DROP POLICY IF EXISTS "Researchers can insert their own rooms" ON rooms;
 CREATE POLICY "Researchers can insert their own rooms"
 ON rooms FOR INSERT
 WITH CHECK (auth.uid() = researcher_id);
 
+DROP POLICY IF EXISTS "Researchers can read their own rooms" ON rooms;
 CREATE POLICY "Researchers can read their own rooms"
 ON rooms FOR SELECT
 USING (auth.uid() = researcher_id);
 
+DROP POLICY IF EXISTS "Researchers can update their own rooms" ON rooms;
 CREATE POLICY "Researchers can update their own rooms"
 ON rooms FOR UPDATE
 USING (auth.uid() = researcher_id);
 
 -- 8. Allow participants to read active rooms by code (for joining)
+DROP POLICY IF EXISTS "Anyone can read active rooms" ON rooms;
 CREATE POLICY "Anyone can read active rooms"
 ON rooms FOR SELECT
 USING (status IN ('active', 'open'));
@@ -67,18 +73,26 @@ CREATE TABLE IF NOT EXISTS results (
   correct_answer TEXT,
   language TEXT,
   timestamp TIMESTAMPTZ DEFAULT NOW(),
-  trial_data JSONB
+  trial_data JSONB,
+  accuracy FLOAT,
+  total_trials INTEGER
 );
+
+-- 9.5 Add columns if they don't exist (for existing tables)
+ALTER TABLE results ADD COLUMN IF NOT EXISTS accuracy FLOAT;
+ALTER TABLE results ADD COLUMN IF NOT EXISTS total_trials INTEGER;
 
 -- 10. Enable RLS on results
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
 
 -- 11. Anyone can insert results (participants are anonymous)
+DROP POLICY IF EXISTS "Anyone can insert results" ON results;
 CREATE POLICY "Anyone can insert results"
 ON results FOR INSERT
 WITH CHECK (true);
 
 -- 12. Researchers can read results for their rooms
+DROP POLICY IF EXISTS "Researchers can read results for their rooms" ON results;
 CREATE POLICY "Researchers can read results for their rooms"
 ON results FOR SELECT
 USING (
