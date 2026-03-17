@@ -222,7 +222,7 @@ export async function getRoomByCode(code: string): Promise<Room | null> {
     .from('rooms')
     .select('*')
     .eq('code', code)
-    .in('status', ['active', 'open'])
+    .in('status', ['active', 'open', 'draft'])
     .single();
   if (error) return null;
   return data;

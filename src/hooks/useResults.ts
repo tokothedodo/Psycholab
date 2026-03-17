@@ -10,43 +10,69 @@ export function useResults() {
         setIsSubmitting(true);
         setError(null);
 
-        const basePayload = {
+        const fullPayload = {
             room_id: results.roomId,
             participant_id: results.participantId,
             experiment_name: results.experimentName,
             response_time_ms: results.responseTimeMs,
-            answer: String(results.answer), // Ensure it's stringified
+            answer: String(results.answer),
             correct_answer: String(results.correctAnswer),
             language: results.language,
             accuracy: results.accuracy,
             total_trials: results.totalTrials,
             timestamp: results.timestamp,
+            trial_data: results.trialData,
         };
 
+        const basicPayload = {
+            room_id: results.roomId,
+            participant_id: results.participantId,
+            experiment_name: results.experimentName,
+            response_time_ms: results.responseTimeMs,
+            answer: String(results.answer),
+            correct_answer: String(results.correctAnswer),
+            language: results.language,
+            timestamp: results.timestamp,
+        };
+
+        const minimumPayload = {
+            room_id: results.roomId,
+            participant_id: results.participantId,
+            experiment_name: results.experimentName,
+        };
+
+        console.log('[PsychoLab] 🛰️ Attempting to sync research data...', { experiment: results.experimentName });
+
         try {
-            // First attempt: try to save with the detailed JSON trial data
-            await saveResult({
-                ...basePayload,
-                trial_data: results.trialData, // Requires a JSONB column 'trial_data' in Supabase
-            } as any);
+            // Level 1: Full data (including JSONB trial logs)
+            console.log('[PsychoLab] 📡 Sync Level 1: Full dataset');
+            await saveResult(fullPayload as any);
+            console.log('[PsychoLab] ✅ Sync success: Full dataset preserved');
             return true;
         } catch (err: any) {
-            // Graceful fallback: if the column 'trial_data' doesn't exist yet, we catch the error 
-            // and save only the basic metrics so data isn't lost.
-            console.warn(
-                "Failed to save full trial_data. If you want trial-by-trial logs, " +
-                "please add a 'trial_data' JSONB column to your 'results' table in Supabase."
-            );
+            console.warn('[PsychoLab] ⚠️ Sync Level 1 failed (check if trial_data/accuracy/total_trials exist):', err.message);
 
             try {
-                // Second attempt: save without trial_data
-                await saveResult(basePayload as any);
+                // Level 2: Basic metrics only (no JSONB, no new columns)
+                console.log('[PsychoLab] 📡 Sync Level 2: Basic metrics');
+                await saveResult(basicPayload as any);
+                console.log('[PsychoLab] ⚠️ Sync partial success: Core metrics preserved, trial logs lost');
                 return true;
-            } catch (fallbackErr: unknown) {
-                const message = fallbackErr instanceof Error ? fallbackErr.message : 'An error occurred while saving results';
-                console.error('Error saving result on fallback:', fallbackErr);
-                setError(message);
-                return false;
+            } catch (fallbackErr: any) {
+                console.warn('[PsychoLab] ❌ Sync Level 2 failed (check database connection/permissions):', fallbackErr.message);
+
+                try {
+                    // Level 3: Bare minimum (ID and Name) - only fail if world is ending
+                    console.log('[PsychoLab] 📡 Sync Level 3: Minimal record');
+                    await saveResult(minimumPayload as any);
+                    console.log('[PsychoLab] 🆘 Sync emergency success: Participant presence recorded, all data points lost');
+                    return true;
+                } catch (emergencyErr: any) {
+                    const message = emergencyErr instanceof Error ? emergencyErr.message : 'Total synchronization failure';
+                    console.error('[PsychoLab] 💀 CRITICAL ERROR: All data synchronization paths failed:', emergencyErr);
+                    setError(message);
+                    return false;
+                }
             }
         } finally {
             setIsSubmitting(false);

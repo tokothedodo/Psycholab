@@ -40,7 +40,7 @@ export function JoinExperimentPage() {
   const [completed, setCompleted] = useState(false);
   const [participantId] = useState(() => `P_${Math.random().toString(36).substr(2, 9)}`);
   const [showLanguagePicker, setShowLanguagePicker] = useState(true);
-  const { submitResults } = useResults();
+  const { submitResults, isSubmitting } = useResults();
 
   const languages: { code: Language; name: string; flag: string }[] = [
     { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -51,7 +51,20 @@ export function JoinExperimentPage() {
 
   useEffect(() => {
     if (code) loadRoom();
-  }, [code]);
+
+    // Polling for room status if it's in draft
+    const interval = setInterval(async () => {
+      if (code && (!room || room.status === 'draft')) {
+        const roomData = await getRoomByCode(code);
+        if (roomData && roomData.status !== room?.status) {
+          console.log('[PsychoLab] 🛰️ Room status updated:', roomData.status);
+          setRoom(roomData);
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [code, room?.status]);
 
   const loadRoom = async () => {
     try {
@@ -80,11 +93,13 @@ export function JoinExperimentPage() {
       language: language
     };
 
+    console.log('[PsychoLab] 🚀 Data payload constructed:', finalResults);
     const success = await submitResults(finalResults);
+
     if (success) {
-      console.log('[PsychoLab] Results saved successfully');
+      console.log('[PsychoLab] 🎉 Session data synchronized successfully.');
     } else {
-      console.error('[PsychoLab] CRITICAL: Failed to save results after all attempts');
+      console.error('[PsychoLab] 🚨 CRITICAL: Synchronization failed after all fallbacks.');
     }
     setCompleted(true);
   };
@@ -104,6 +119,28 @@ export function JoinExperimentPage() {
   }
 
   if (showLanguagePicker && room) {
+    if (room.status === 'draft') {
+      return (
+        <div className="min-h-screen bg-surface flex items-center justify-center p-8">
+          <header className="participant-header">
+            <span className="brand-mono">PsychoLab.ge</span>
+          </header>
+          <div className="text-center max-w-md animate-fade-in translate-y-[-2rem]">
+            <div className="w-16 h-16 bg-navy/5 text-navy rounded-3xl flex items-center justify-center text-3xl mb-8 mx-auto animate-pulse shadow-sm border border-navy/5">📡</div>
+            <h1 className="text-3xl font-black mb-4 tracking-tight">Sync in Progress</h1>
+            <p className="text-text-secondary mb-10 leading-relaxed font-medium">
+              Research session <span className="text-navy font-bold">{room.code}</span> has not started yet.<br />
+              Please wait for the supervisor's signal.
+            </p>
+            <div className="flex items-center justify-center gap-3 py-4 px-6 bg-white rounded-2xl border border-border shadow-sm">
+              <div className="w-2 h-2 bg-teal rounded-full animate-pulse shadow-[0_0_8px_rgba(45,212,191,0.5)]"></div>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Waiting for Uplink...</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-surface">
         <header className="participant-header">
@@ -174,11 +211,19 @@ export function JoinExperimentPage() {
       <header className="participant-header flex justify-between">
         <span className="brand-mono text-xs opacity-50">PsychoLab Research Unit // {currentExperiment?.name}</span>
         <div className="flex items-center gap-2">
+          {room!.status === 'draft' && <span className="text-[9px] font-black bg-yellow-400 px-2 py-0.5 rounded text-black mr-2">STAGING</span>}
           <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{language}</span>
         </div>
       </header>
 
       <main className="experiment-layout">
+        {isSubmitting && (
+          <div className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-fade-in text-navy">
+            <div className="w-16 h-16 border-4 border-navy border-t-transparent rounded-full animate-spin mb-8 shadow-2xl"></div>
+            <h2 className="text-2xl font-black mb-2 tracking-tighter">Synchronizing Data</h2>
+            <p className="opacity-70 font-medium">Please do not close this window while we secure your research contribution.</p>
+          </div>
+        )}
         <ExperimentComponent
           experiment={currentExperiment}
           onComplete={handleExperimentComplete}
