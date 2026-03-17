@@ -78,28 +78,37 @@ CREATE TABLE IF NOT EXISTS results (
   total_trials INTEGER
 );
 
--- 9.5 Add columns if they don't exist (for existing tables)
+-- 9.5 Ensure columns exist for older tables
 ALTER TABLE results ADD COLUMN IF NOT EXISTS accuracy FLOAT;
 ALTER TABLE results ADD COLUMN IF NOT EXISTS total_trials INTEGER;
+ALTER TABLE results ADD COLUMN IF NOT EXISTS trial_data JSONB;
 
 -- 10. Enable RLS on results
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
 
--- 11. Anyone can insert results (participants are anonymous)
+-- 11. Allow participants (anon) and researchers (authenticated) to insert results
 DROP POLICY IF EXISTS "Anyone can insert results" ON results;
 CREATE POLICY "Anyone can insert results"
 ON results FOR INSERT
+TO anon, authenticated
 WITH CHECK (true);
 
--- 12. Researchers can read results for their rooms
-DROP POLICY IF EXISTS "Researchers can read results for their rooms" ON results;
-CREATE POLICY "Researchers can read results for their rooms"
+-- 12. Allow both participants and researchers to select (required for some Supabase operations)
+DROP POLICY IF EXISTS "Anyone can select results" ON results;
+CREATE POLICY "Anyone can select results"
 ON results FOR SELECT
-USING (
-  room_id IN (
-    SELECT id FROM rooms WHERE researcher_id = auth.uid()
-  )
-);
+TO anon, authenticated
+USING (true);
+
+-- 13. (Optional but recommended) More restrictive select for researchers if needed:
+-- DROP POLICY IF EXISTS "Researchers can read results for their rooms" ON results;
+-- CREATE POLICY "Researchers can read results for their rooms"
+-- ON results FOR SELECT
+-- USING (
+--   room_id IN (
+--     SELECT id FROM rooms WHERE researcher_id = auth.uid()
+--   )
+-- );
 
 -- =====================================================
 -- If you have existing rooms with 'experiments' column (array),
