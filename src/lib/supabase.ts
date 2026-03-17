@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[PsychoLab] 🚨 CRITICAL: Supabase configuration missing! Check your .env files or hosting provider environment variables.');
+} else {
+  console.log('[PsychoLab] 🛰️ Supabase client initialized with endpoint:', supabaseUrl.substring(0, 15) + '...');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface User {
@@ -237,13 +243,10 @@ export async function closeRoom(roomId: string) {
 }
 
 export async function saveResult(result: Omit<Result, 'id'>) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('results')
-    .insert(result)
-    .select()
-    .single();
+    .insert(result);
   if (error) throw error;
-  return data;
 }
 
 export async function getResults(roomId: string): Promise<Result[]> {
