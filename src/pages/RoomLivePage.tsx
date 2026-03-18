@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getUser, getRooms, activateRoom, closeRoom, getUniqueParticipants, type Room } from '../lib/supabase';
+import { QRCode } from '../components/QRCode';
 import './RoomLivePage.css';
 
 export function RoomLivePage() {
@@ -97,7 +98,6 @@ export function RoomLivePage() {
 
     const shareLink = `${window.location.origin}/join/${room.code}`;
     const isActive = room.status === 'active';
-    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(shareLink)}`;
 
     return (
         <div className="min-h-screen bg-surface">
@@ -123,7 +123,7 @@ export function RoomLivePage() {
 
                     <div className="flex justify-center mb-4">
                         <div className="p-4 bg-white border rounded-xl shadow-inner">
-                            <img src={qrUrl} alt="Join QR Code" className="w-40 h-40" />
+                            <QRCode value={shareLink} size={160} />
                         </div>
                     </div>
                     <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-2">{t('roomBuilder.participantLink')}</p>
