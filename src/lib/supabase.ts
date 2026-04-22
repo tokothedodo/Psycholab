@@ -99,6 +99,14 @@ export async function resetPasswordForEmail(email: string) {
   if (error) throw error;
 }
 
+export async function updatePassword(newPassword: string) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
@@ -238,6 +246,52 @@ export async function closeRoom(roomId: string) {
   const { error } = await supabase
     .from('rooms')
     .update({ status: 'closed' })
+    .eq('id', roomId);
+  if (error) throw error;
+}
+
+export async function deleteRoom(roomId: string) {
+  console.log('[deleteRoom] Starting deletion for room:', roomId);
+  
+  // Check if room exists first  
+  const { count, error: countError } = await supabase
+    .from('rooms')
+    .select('*', { count: 'exact', head: true })
+    .eq('id', roomId);
+  
+  console.log('[deleteRoom] Room count:', count, 'error:', countError);
+  
+  if (countError) {
+    console.error('[deleteRoom] Check error:', countError);
+  }
+  
+  if (!count || count === 0) {
+    console.log('[deleteRoom] Room already deleted or not found');
+    return;
+  }
+  
+  // Try to delete
+  const { error: deleteError } = await supabase
+    .from('rooms')
+    .delete()
+    .eq('id', roomId);
+  
+  console.log('[deleteRoom] Delete result error:', deleteError);
+  
+  if (deleteError) {
+    console.error('[deleteRoom] Delete failed:', deleteError);
+    throw new Error('Failed to delete: ' + deleteError.message);
+  }
+  
+  // Delete results too
+  await supabase.from('results').delete().eq('room_id', roomId);
+  console.log('[deleteRoom] Done');
+}
+
+export async function reopenRoom(roomId: string) {
+  const { error } = await supabase
+    .from('rooms')
+    .update({ status: 'active' })
     .eq('id', roomId);
   if (error) throw error;
 }

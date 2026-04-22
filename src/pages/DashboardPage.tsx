@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { getRooms, getUniqueParticipants, getRoomResultsCount, closeRoom, getResults, getUser, signOut, type Room, type Result } from '../lib/supabase';
+import { getRooms, getUniqueParticipants, getRoomResultsCount, closeRoom, deleteRoom, reopenRoom, getResults, getUser, signOut, type Room, type Result } from '../lib/supabase';
 import { AIAssistant } from '../components/AIAssistant';
 import { getExperimentById } from '../data/experiments';
+
 import './DashboardPage.css';
 
 export function DashboardPage() {
@@ -35,9 +36,11 @@ export function DashboardPage() {
   };
 
   const loadRooms = async () => {
+    console.log('[loadRooms] Starting, user:', user?.id);
     if (!user?.id) return;
     try {
       const roomsData = await getRooms(user.id);
+      console.log('[loadRooms] Got rooms:', roomsData.length, roomsData.map(r => r.id));
       setRooms(roomsData);
 
       const stats: Record<string, { participants: number; results: number }> = {};
@@ -63,6 +66,35 @@ export function DashboardPage() {
       loadRooms();
     } catch (error) {
       console.error('Error closing room:', error);
+    }
+  };
+
+  const handleReopenRoom = async (roomId: string) => {
+    try {
+      await reopenRoom(roomId);
+      loadRooms();
+    } catch (error) {
+      console.error('Error reopening room:', error);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    console.log('Delete clicked for room:', roomId);
+    const confirmed = window.confirm('Are you sure you want to delete this room and all its results?');
+    console.log('Confirmed:', confirmed);
+    if (!confirmed) return;
+    try {
+      console.log('Attempting to delete room...');
+      await deleteRoom(roomId);
+      console.log('Room deleted, reloading...');
+      // Force clear and reload
+      setRooms([]);
+      await loadRooms();
+      console.log('Done');
+      alert('Room deleted successfully');
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      alert('Failed to delete room. You may not have permission.');
     }
   };
 
@@ -103,7 +135,7 @@ export function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-text-muted animate-pulse">Initializing Dashboard...</p>
+        <p className="text-text-muted animate-pulse">{t('dashboard.initializing')}</p>
       </div>
     );
   }
@@ -112,14 +144,8 @@ export function DashboardPage() {
     <div className="dashboard-layout animate-fade-in">
       <aside className="sidebar">
         <nav className="sidebar-nav">
-          <div className="px-6 mb-8">
-            <h3 style={{ fontFamily: 'DM Serif Display' }}>PsychoLab<span style={{ color: 'var(--teal)' }}>.</span></h3>
-          </div>
           <a href="#" className="sidebar-link active">
-            <span>🏠</span> Dashboard
-          </a>
-          <a href="#" className="sidebar-link" onClick={() => navigate('/experiments')}>
-            <span>🔬</span> Experiments
+            <span>🏠</span> {t('nav.dashboard')}
           </a>
           <button className="sidebar-link w-full text-left" onClick={() => setShowAI(!showAI)}>
             <span>🤖</span> AI Assistant
@@ -142,27 +168,27 @@ export function DashboardPage() {
 
       <main className="dashboard-main">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="mb-0">Research Summary</h1>
+          <h1 className="mb-0">{t('dashboard.researchSummary')}</h1>
           <button
             onClick={() => navigate('/create-room')}
             className="btn-primary"
           >
-            + Create New Room
+            + {t('dashboard.createRoom')}
           </button>
         </div>
 
         <div className="stats-grid">
           <div className="stat-card">
             <p className="stat-value">{rooms.length}</p>
-            <p className="stat-label">Total Rooms</p>
+            <p className="stat-label">{t('dashboard.totalRooms')}</p>
           </div>
           <div className="stat-card">
             <p className="stat-value">{totalParticipants}</p>
-            <p className="stat-label">Participants</p>
+            <p className="stat-label">{t('dashboard.participants')}</p>
           </div>
           <div className="stat-card">
             <p className="stat-value">{totalResults}</p>
-            <p className="stat-label">Data Points</p>
+            <p className="stat-label">{t('dashboard.dataPoints')}</p>
           </div>
         </div>
 
@@ -174,12 +200,12 @@ export function DashboardPage() {
 
         {rooms.length === 0 ? (
           <div className="text-center py-16 bg-white border border-border rounded-xl">
-            <p className="text-text-muted">No research rooms created yet.</p>
+            <p className="text-text-muted">{t('dashboard.noRoomsYet')}</p>
             <button
               onClick={() => navigate('/create-room')}
               className="btn-outline mt-4"
             >
-              Start First Study
+              {t('dashboard.startFirstStudy')}
             </button>
           </div>
         ) : (
@@ -188,7 +214,7 @@ export function DashboardPage() {
               <section className="animate-fade-up">
                 <h3 className="mb-6 flex items-center gap-3">
                   <span className="w-2 h-2 bg-teal rounded-full animate-pulse"></span>
-                  Active Studies
+                  {t('dashboard.activeStudies')}
                 </h3>
                 <div className="grid gap-6">
                   {activeRooms.map((room) => (
@@ -215,6 +241,8 @@ export function DashboardPage() {
                       key={room.id}
                       room={room}
                       stats={roomStats[room.id] || { participants: 0, results: 0 }}
+                      onReopen={() => handleReopenRoom(room.id)}
+                      onDelete={() => handleDeleteRoom(room.id)}
                       onExport={() => handleExportCSV(room)}
                       t={t}
                     />
@@ -233,15 +261,17 @@ interface RoomCardProps {
   room: Room;
   stats: { participants: number; results: number };
   onClose?: () => void;
+  onReopen?: () => void;
+  onDelete?: () => void;
   onExport: () => void;
   onViewLive?: () => void;
   t: (key: string) => string;
 }
 
-function RoomCard({ room, stats, onClose, onExport, onViewLive, t }: RoomCardProps) {
+function RoomCard({ room, stats, onClose, onReopen, onDelete, onExport, onViewLive, t }: RoomCardProps) {
   const isActive = room.status === 'active' || room.status === 'draft';
   const experimentData = getExperimentById(room.experiment);
-  const experimentName = experimentData?.name || room.experiment || 'No experiment';
+  const experimentNameKey = experimentData?.nameKey;
 
   return (
     <div className="room-card-v2">
@@ -249,23 +279,23 @@ function RoomCard({ room, stats, onClose, onExport, onViewLive, t }: RoomCardPro
         <div className="room-title-area">
           <div className="flex items-center gap-3 mb-1">
             <span className={`room-status-pill ${room.status === 'active' ? 'status-active' : room.status === 'draft' ? 'status-draft' : 'status-closed'}`}>
-              {room.status}
+              {t(`dashboard.status.${room.status}`)}
             </span>
-            <h3>{room.title || `Study: ${experimentName}`}</h3>
+            <h3>{room.title || (experimentNameKey ? t(experimentNameKey) : room.experiment)}</h3>
           </div>
           <p className="text-text-muted text-sm flex items-center gap-2">
-            Code: <span className="room-code-badge">{room.code}</span>
+            {t('dashboard.code')}: <span className="room-code-badge">{room.code}</span>
           </p>
         </div>
 
         <div className="flex gap-8 items-center pr-4">
           <div className="text-center">
             <p className="font-bold text-navy text-xl">{stats.participants}</p>
-            <p className="label" style={{ fontSize: '0.65rem' }}>Users</p>
+            <p className="label" style={{ fontSize: '0.65rem' }}>{t('dashboard.participants')}</p>
           </div>
           <div className="text-center">
             <p className="font-bold text-navy text-xl">{stats.results}</p>
-            <p className="label" style={{ fontSize: '0.65rem' }}>Data</p>
+            <p className="label" style={{ fontSize: '0.65rem' }}>{t('dashboard.results')}</p>
           </div>
         </div>
       </div>
@@ -276,14 +306,14 @@ function RoomCard({ room, stats, onClose, onExport, onViewLive, t }: RoomCardPro
             onClick={onViewLive}
             className="btn-primary"
           >
-            Launch Live Room
+            {t('dashboard.launchRoom')}
           </button>
         )}
         <button
           onClick={onExport}
           className="btn-outline btn-csv"
         >
-          <span>📉</span> Export CSV
+          <span>📉</span> {t('dashboard.exportCSV')}
         </button>
         {isActive && onClose && (
           <button
@@ -292,6 +322,23 @@ function RoomCard({ room, stats, onClose, onExport, onViewLive, t }: RoomCardPro
             style={{ color: 'var(--error)', borderColor: 'rgba(220,38,38,0.2)' }}
           >
             {t('dashboard.closeRoom')}
+          </button>
+        )}
+        {!isActive && onReopen && (
+          <button
+            onClick={onReopen}
+            className="btn-primary"
+          >
+            {t('dashboard.reopenRoom')}
+          </button>
+        )}
+        {!isActive && onDelete && (
+          <button
+            onClick={onDelete}
+            className="btn-outline"
+            style={{ color: 'var(--error)', borderColor: 'rgba(220,38,38,0.2)' }}
+          >
+            {t('dashboard.deleteRoom')}
           </button>
         )}
       </div>

@@ -1,5 +1,5 @@
 .config-sidebar {
-    width: 320px;
+    width: 100%;
     background: var(--white);
     border-left: 1px solid var(--border);
     box-shadow: var(--shadow-lg);

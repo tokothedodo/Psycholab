@@ -219,8 +219,8 @@ export function ExperimentConfigPanel({
   return (
     <div className="config-sidebar animate-fade-in">
       <div className="config-header">
-        <h3>{experimentName}</h3>
-        <p className="citation" style={{ color: 'rgba(255,255,255,0.6)' }}>Study Parameters</p>
+        <h3>{t(experimentName)}</h3>
+        <p className="citation" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('roomBuilder.studyParameters')}</p>
       </div>
 
       <div className="config-tabs">
@@ -228,20 +228,20 @@ export function ExperimentConfigPanel({
           onClick={() => setExpandedSection('universal')}
           className={`config-tab ${expandedSection === 'universal' ? 'active' : ''}`}
         >
-          Methodology
+          {t('roomBuilder.methodology')}
         </button>
         <button
           onClick={() => setExpandedSection('experiment')}
           className={`config-tab ${expandedSection === 'experiment' ? 'active' : ''}`}
         >
-          Variables
+          {t('roomBuilder.variables')}
         </button>
       </div>
 
       <div className="config-scroll-area">
         {expandedSection === 'universal' && (
           <div>
-            <h4 className="config-section-title">Common Settings</h4>
+            <h4 className="config-section-title">{t('roomBuilder.commonSettings')}</h4>
             {universalVars.map(([varId, varConfig]) =>
               renderInput(varId, varConfig as Record<string, unknown>)
             )}
@@ -249,13 +249,13 @@ export function ExperimentConfigPanel({
         )}
         {expandedSection === 'experiment' && (
           <div>
-            <h4 className="config-section-title">Stimuli & Task</h4>
+            <h4 className="config-section-title">{t('roomBuilder.stimuliTask')}</h4>
             {experimentVars.length > 0 ? (
               experimentVars.map(([varId, varConfig]) =>
                 renderInput(varId, varConfig as Record<string, unknown>)
               )
             ) : (
-              <p className="text-text-muted text-xs italic">No experiment-specific variables</p>
+              <p className="text-text-muted text-xs italic">{t('roomBuilder.noVariables')}</p>
             )}
           </div>
         )}
@@ -266,21 +266,21 @@ export function ExperimentConfigPanel({
           onClick={handleReset}
           className="btn-outline flex-1 py-2 text-xs"
         >
-          Default
+          {t('roomBuilder.default')}
         </button>
         {onPreview && (
           <button
             onClick={onPreview}
             className="btn-primary flex-1 py-2 text-xs"
           >
-            Preview
+            {t('roomBuilder.preview')}
           </button>
         )}
       </div>
 
       {participantCount > 0 && (
         <div className="p-3 bg-teal text-white text-[10px] font-bold uppercase tracking-wider text-center">
-          {participantCount} Active Participants
+          {participantCount} {t('roomBuilder.activeParticipants')}
         </div>
       )}
     </div>

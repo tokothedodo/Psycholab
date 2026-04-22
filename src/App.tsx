@@ -5,6 +5,7 @@ import {
   HomePage,
   LoginPage,
   SignupPage,
+  ResetPasswordPage,
   DashboardPage,
   RoomBuilderPage,
   JoinExperimentPage,
@@ -22,6 +23,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/create-room" element={<RoomBuilderPage />} />
           <Route path="/join/:code" element={<JoinExperimentPage />} />

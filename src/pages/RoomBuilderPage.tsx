@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getUser, createRoom, ensureUserRecord } from '../lib/supabase';
-import { AIAssistant } from '../components/AIAssistant';
 import { ExperimentConfigPanel, getDefaultConfig } from '../experiments/config';
 import { EXPERIMENTS_BY_CATEGORY, getExperimentById } from '../data/experiments';
 import './RoomBuilderPage.css';
@@ -70,15 +69,18 @@ export function RoomBuilderPage() {
     <div className="builder-layout animate-fade-in">
       <main className="builder-catalog">
         <header className="mb-8">
-          <h1 className="mb-2">Design Your Study</h1>
-          <p className="text-text-secondary">Select an experiment to configure its scientific parameters.</p>
+          <button onClick={() => navigate('/dashboard')} className="back-arrow-btn" title={t('common.back')}>
+            ←
+          </button>
+          <h1 className="mb-2">{t('roomBuilder.title')}</h1>
+          <p className="text-text-secondary">{t('roomBuilder.subtitle')}</p>
         </header>
 
         <div className="mb-8">
           <input
             type="text"
             className="input-premium py-3 px-4 mb-4"
-            placeholder="Search experiments..."
+            placeholder={t('roomBuilder.searchExperiments')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -87,7 +89,7 @@ export function RoomBuilderPage() {
               onClick={() => setActiveCategory(null)}
               className={`filter-pill ${!activeCategory ? 'active' : ''}`}
             >
-              All
+              {t('roomBuilder.all')}
             </button>
             {EXPERIMENTS_BY_CATEGORY.map(cat => (
               <button
@@ -116,7 +118,7 @@ export function RoomBuilderPage() {
                   <p className="line-clamp-2">{t(exp.descriptionKey) || exp.description}</p>
                   <div className="flex justify-between items-center mt-3 pt-3 border-t">
                     <span className="citation" style={{ fontSize: '0.65rem' }}>~{exp.duration}m</span>
-                    <span className="label" style={{ fontSize: '0.6rem' }}>{exp.trials} Trials</span>
+                    <span className="label" style={{ fontSize: '0.6rem' }}>{exp.trials} {t('common.trials')}</span>
                   </div>
                 </div>
               ))}
@@ -130,22 +132,16 @@ export function RoomBuilderPage() {
           <div className="flex flex-col h-full">
             <ExperimentConfigPanel
               experimentId={selectedExpData.id}
-              experimentName={selectedExpData.name}
+              experimentName={selectedExpData.nameKey}
               config={experimentConfig}
               onConfigChange={setExperimentConfig}
             />
-            <div className="ai-panel">
-              <AIAssistant
-                currentExperiment={selectedExpData.id}
-                experimentConfig={{ [selectedExpData.id]: experimentConfig }}
-              />
-            </div>
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-text-muted">
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
-            <h3>Metadata Viewer</h3>
-            <p>Select an experiment to view theoretical basis and configure methodology.</p>
+            <h3>{t('roomBuilder.metadataViewer')}</h3>
+            <p>{t('roomBuilder.selectExperiment')}</p>
           </div>
         )}
       </aside>
@@ -154,27 +150,24 @@ export function RoomBuilderPage() {
         <div className="footer-experiment-info flex-1">
           {selectedExpData ? (
             <>
-              <span className="footer-badge">Target Experiment</span>
-              <h3>{selectedExpData.name}</h3>
+              <span className="footer-badge">{t('roomBuilder.targetExperiment')}</span>
+              <h3>{t(selectedExpData.nameKey)}</h3>
             </>
           ) : (
-            <p className="text-text-muted italic">Ready to deploy? Select a task first.</p>
+            <p className="text-text-muted italic">{t('roomBuilder.readyToDeploy')}</p>
           )}
         </div>
 
         {error && <p className="text-error text-sm mr-4">{error}</p>}
 
-        <div className="flex gap-4">
-          <button onClick={() => navigate('/dashboard')} className="btn-outline">Cancel</button>
-          <button
-            onClick={handleCreateRoom}
-            disabled={!selectedExperiment || loading}
-            className="btn-primary"
-            style={{ paddingLeft: '3rem', paddingRight: '3rem' }}
-          >
-            {loading ? 'Initializing...' : 'Launch Research Room'}
-          </button>
-        </div>
+        <button
+          onClick={handleCreateRoom}
+          disabled={!selectedExperiment || loading}
+          className="btn-primary"
+          style={{ paddingLeft: '3rem', paddingRight: '3rem' }}
+        >
+          {loading ? t('roomBuilder.initializing') : t('roomBuilder.launchRoom')}
+        </button>
       </footer>
     </div>
   );

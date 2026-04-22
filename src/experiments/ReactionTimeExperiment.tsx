@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Experiment } from '../data/experiments';
 import type { ExperimentResults } from './ExperimentWrapper';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ReactionTimeProps {
   experiment: Experiment;
@@ -9,162 +10,474 @@ interface ReactionTimeProps {
   roomId: string;
 }
 
-export function ReactionTimeExperiment({ experiment, onComplete, participantId, roomId }: ReactionTimeProps) {
-  const [phase, setPhase] = useState<'instruction' | 'test' | 'debrief'>('instruction');
+interface TrialResult {
+  subject_age: number;
+  subject_gender: string;
+  trial_index: number;
+  pedestrian_race: string;
+  pedestrian_gender: string;
+  doctor_side: string;
+  chosen_side: string;
+  reaction_time_ms: number;
+}
+
+interface TrialConfig {
+  type: 'control' | 'experimental';
+  pedestrian?: string;
+}
+
+const CANVAS_WIDTH = 1280;
+const CANVAS_HEIGHT = 720;
+const TOTAL_TRIALS = 30;
+
+const PEDESTRIAN_IMAGES = [
+  'arab_man1.png',
+  'arab_woman1.png',
+  'black_man1.png',
+  'black_woman1.png',
+  'black_constructionwoman.png',
+  'indian_man1.png',
+  'indian_woman1.png',
+  'white_man1.png',
+  'white_woman1.png',
+];
+
+const REQUIRED_COMBOS = [
+  'arab_man1.png',
+  'arab_woman1.png',
+  'black_man1.png',
+  'black_woman1.png',
+  'indian_man1.png',
+  'indian_woman1.png',
+  'white_man1.png',
+  'white_woman1.png',
+];
+
+function parsePedestrianInfo(filename: string): { race: string; gender: string } {
+  const name = filename.replace('.png', '');
+  if (name === 'black_constructionwoman') {
+    return { race: 'black', gender: 'woman' };
+  }
+  const parts = name.split('_');
+  const race = parts[0];
+  const gender = parts[1];
+  return { race, gender };
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function generateTrials(): TrialConfig[] {
+  const trials: TrialConfig[] = [];
+
+  REQUIRED_COMBOS.forEach(pedestrian => {
+    trials.push({ type: 'experimental', pedestrian });
+  });
+
+  const controlCount = TOTAL_TRIALS - REQUIRED_COMBOS.length;
+  for (let i = 0; i < controlCount; i++) {
+    trials.push({ type: 'control' });
+  }
+
+  return shuffleArray(trials);
+}
+
+export function ReactionTimeExperiment(_props: ReactionTimeProps) {
+  const { t } = useLanguage();
+  const [phase, setPhase] = useState<'instruction' | 'fixation' | 'stimulus' | 'debrief'>('instruction');
   const [trial, setTrial] = useState(0);
-  const [stimulusVisible, setStimulusVisible] = useState(false);
-  const [startTime, setStartTime] = useState(0);
-  const [results, setResults] = useState<{ trial: number; rt: number }[]>([]);
-  const totalTrials = 10;
-  const timeoutRef = useRef<any>(null);
+  const [trialConfigs, setTrialConfigs] = useState<TrialConfig[]>([]);
+  const [results, setResults] = useState<TrialResult[]>([]);
+  const [leftPerson, setLeftPerson] = useState('');
+  const [rightPerson, setRightPerson] = useState('');
+  const [doctorOnLeft, setDoctorOnLeft] = useState(true);
+  const [leftSurvival, setLeftSurvival] = useState(0);
+  const [rightSurvival, setRightSurvival] = useState(0);
+  const [subjectAge, setSubjectAge] = useState(0);
+  const [subjectGender, setSubjectGender] = useState('');
 
-  const startTrial = useCallback(() => {
-    setStimulusVisible(false);
-    // Random delay between 1.5 and 4.5 seconds
-    const delay = Math.random() * 3000 + 1500;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const startTimeRef = useRef(0);
+  const roadImageRef = useRef<HTMLImageElement | null>(null);
+  const doctorImageRef = useRef<HTMLImageElement | null>(null);
+  const pedestrianImageRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const timeoutRef = useRef<number | null>(null);
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  useEffect(() => {
+    if (phase === 'instruction') return;
 
-    timeoutRef.current = setTimeout(() => {
-      setStimulusVisible(true);
-      setStartTime(performance.now());
-    }, delay);
+    if (!roadImageRef.current) {
+      const roadImg = new Image();
+      roadImg.src = '/road.png';
+      roadImg.onload = () => {
+        roadImageRef.current = roadImg;
+      };
+    }
+
+    if (!doctorImageRef.current) {
+      const doctorImg = new Image();
+      doctorImg.src = '/doctor.png';
+      doctorImg.onload = () => {
+        doctorImageRef.current = doctorImg;
+      };
+    }
+
+    PEDESTRIAN_IMAGES.forEach(imgName => {
+      if (!pedestrianImageRef.current.has(imgName)) {
+        const img = new Image();
+        img.src = `/${imgName}`;
+        img.onload = () => {
+          pedestrianImageRef.current.set(imgName, img);
+        };
+      }
+    });
+  }, [phase]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    if (phase === 'fixation') {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 120px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      return;
+    }
+
+    if (phase === 'stimulus' && roadImageRef.current && leftPerson && rightPerson) {
+      ctx.drawImage(roadImageRef.current, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      const personScale = 0.2;
+      const groundY = CANVAS_HEIGHT;
+      const centerX = CANVAS_WIDTH / 2;
+      const spacing = CANVAS_WIDTH * 0.25;
+
+      const leftX = centerX - spacing;
+      const rightX = centerX + spacing;
+
+      const drawSurvivalLabel = (x: number, y: number, survival: number) => {
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        const text = `${survival}% chance of survival`;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(text, x, y);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, x, y);
+      };
+
+      if (leftPerson === 'doctor' && doctorImageRef.current) {
+        const docWidth = doctorImageRef.current.width * personScale;
+        const docHeight = doctorImageRef.current.height * personScale;
+        ctx.drawImage(doctorImageRef.current, leftX - docWidth / 2, groundY - docHeight, docWidth, docHeight);
+        drawSurvivalLabel(leftX, groundY - docHeight - 20, leftSurvival);
+      } else if (leftPerson !== 'doctor') {
+        const leftImg = pedestrianImageRef.current.get(leftPerson);
+        if (leftImg && leftImg.complete) {
+          const imgWidth = leftImg.width * personScale;
+          const imgHeight = leftImg.height * personScale;
+          ctx.drawImage(leftImg, leftX - imgWidth / 2, groundY - imgHeight, imgWidth, imgHeight);
+          drawSurvivalLabel(leftX, groundY - imgHeight - 20, leftSurvival);
+        }
+      }
+
+      if (rightPerson === 'doctor' && doctorImageRef.current) {
+        const docWidth = doctorImageRef.current.width * personScale;
+        const docHeight = doctorImageRef.current.height * personScale;
+        ctx.drawImage(doctorImageRef.current, rightX - docWidth / 2, groundY - docHeight, docWidth, docHeight);
+        drawSurvivalLabel(rightX, groundY - docHeight - 20, rightSurvival);
+      } else if (rightPerson !== 'doctor') {
+        const rightImg = pedestrianImageRef.current.get(rightPerson);
+        if (rightImg && rightImg.complete) {
+          const imgWidth = rightImg.width * personScale;
+          const imgHeight = rightImg.height * personScale;
+          ctx.drawImage(rightImg, rightX - imgWidth / 2, groundY - imgHeight, imgWidth, imgHeight);
+          drawSurvivalLabel(rightX, groundY - imgHeight - 20, rightSurvival);
+        }
+      }
+    }
+  }, [phase, doctorOnLeft, leftPerson, rightPerson, leftSurvival, rightSurvival, trial, trialConfigs]);
+
+  useEffect(() => {
+    draw();
+    const interval = setInterval(draw, 16);
+    return () => clearInterval(interval);
+  }, [draw]);
+
+  const runTrial = useCallback(() => {
+    const currentConfig = trialConfigs[trial];
+    const isExperimental = currentConfig.type === 'experimental';
+
+    const isDoctorLeft = Math.random() < 0.5;
+    setDoctorOnLeft(isDoctorLeft);
+
+    if (isExperimental) {
+      const pedestrian = currentConfig.pedestrian || PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      const survivalRate = Math.floor(Math.random() * 100) + 1;
+      if (isDoctorLeft) {
+        setLeftPerson('doctor');
+        setRightPerson(pedestrian);
+        setLeftSurvival(survivalRate);
+        setRightSurvival(survivalRate);
+      } else {
+        setLeftPerson(pedestrian);
+        setRightPerson('doctor');
+        setLeftSurvival(survivalRate);
+        setRightSurvival(survivalRate);
+      }
+    } else {
+      const person1 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      let person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      while (person2 === person1) {
+        person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      }
+      const survival1 = Math.floor(Math.random() * 100) + 1;
+      const survival2 = Math.floor(Math.random() * 100) + 1;
+      if (isDoctorLeft) {
+        setLeftPerson(person1);
+        setRightPerson(person2);
+        setLeftSurvival(survival1);
+        setRightSurvival(survival2);
+      } else {
+        setLeftPerson(person2);
+        setRightPerson(person1);
+        setLeftSurvival(survival2);
+        setRightSurvival(survival1);
+      }
+    }
+
+    setPhase('fixation');
+
+    timeoutRef.current = window.setTimeout(() => {
+      setPhase('stimulus');
+      startTimeRef.current = performance.now();
+    }, 500);
+  }, [trial, trialConfigs]);
+
+  const startFirstTrial = useCallback(() => {
+    const configs = generateTrials();
+    setTrialConfigs(configs);
+
+    const currentConfig = configs[0];
+    const isExperimental = currentConfig.type === 'experimental';
+
+    const isDoctorLeft = Math.random() < 0.5;
+    setDoctorOnLeft(isDoctorLeft);
+
+    if (isExperimental) {
+      const pedestrian = currentConfig.pedestrian || PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      const survivalRate = Math.floor(Math.random() * 100) + 1;
+      if (isDoctorLeft) {
+        setLeftPerson('doctor');
+        setRightPerson(pedestrian);
+        setLeftSurvival(survivalRate);
+        setRightSurvival(survivalRate);
+      } else {
+        setLeftPerson(pedestrian);
+        setRightPerson('doctor');
+        setLeftSurvival(survivalRate);
+        setRightSurvival(survivalRate);
+      }
+    } else {
+      const person1 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      let person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      while (person2 === person1) {
+        person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      }
+      const survival1 = Math.floor(Math.random() * 100) + 1;
+      const survival2 = Math.floor(Math.random() * 100) + 1;
+      if (isDoctorLeft) {
+        setLeftPerson(person1);
+        setRightPerson(person2);
+        setLeftSurvival(survival1);
+        setRightSurvival(survival2);
+      } else {
+        setLeftPerson(person2);
+        setRightPerson(person1);
+        setLeftSurvival(survival2);
+        setRightSurvival(survival1);
+      }
+    }
+
+    setPhase('fixation');
+
+    timeoutRef.current = window.setTimeout(() => {
+      setPhase('stimulus');
+      startTimeRef.current = performance.now();
+    }, 500);
   }, []);
 
-  const handleResponse = useCallback(() => {
-    if (phase !== 'test' || !stimulusVisible) return;
-
-    const rt = performance.now() - startTime;
-    const newResults = [...results, { trial: trial + 1, rt }];
-    setResults(newResults);
-    setStimulusVisible(false);
-
-    if (trial + 1 < totalTrials) {
-      setTrial(prev => prev + 1);
-    } else {
-      setPhase('debrief');
-      const avgRt = newResults.reduce((acc, r) => acc + r.rt, 0) / newResults.length;
-      onComplete({
-        experimentName: experiment.id,
-        participantId,
-        roomId,
-        timestamp: new Date().toISOString(),
-        totalTrials: newResults.length,
-        responseTimeMs: Math.round(avgRt),
-        accuracy: 100,
-        answer: Math.round(avgRt),
-        correctAnswer: 'mean_rt',
-        trialData: newResults.map(r => ({
-          trialNumber: r.trial,
-          responseTimeMs: Math.round(r.rt),
-          stimulus: 'circle',
-          answer: 'detected',
-          correctAnswer: 'detected'
-        })),
-        debrief: 'Task complete. Average reaction time: ' + Math.round(avgRt) + 'ms.'
-      } as any);
+  useEffect(() => {
+    if (trial > 0 && phase === 'fixation') {
+      runTrial();
     }
-  }, [phase, stimulusVisible, startTime, results, trial, experiment.id, participantId, roomId, onComplete]);
+  }, [trial, phase, runTrial]);
 
-  // Keyboard support - prioritized
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleResponse = useCallback((chosenSide: 'left' | 'right') => {
+    if (phase !== 'stimulus') return;
+
+    const rt = performance.now() - startTimeRef.current;
+    const currentConfig = trialConfigs[trial];
+
+    let pedestrianRace = '';
+    let pedestrianGender = '';
+
+    if (currentConfig.type === 'experimental') {
+      const pedestrian = doctorOnLeft ? rightPerson : leftPerson;
+      if (pedestrian !== 'doctor') {
+        const info = parsePedestrianInfo(pedestrian);
+        pedestrianRace = info.race;
+        pedestrianGender = info.gender;
+      }
+    }
+
+    const trialResult: TrialResult = {
+      subject_age: subjectAge,
+      subject_gender: subjectGender,
+      trial_index: trial + 1,
+      pedestrian_race: pedestrianRace,
+      pedestrian_gender: pedestrianGender,
+      doctor_side: doctorOnLeft ? 'left' : 'right',
+      chosen_side: chosenSide,
+      reaction_time_ms: Math.round(rt),
+    };
+
+    const newResults = [...results, trialResult];
+    setResults(newResults);
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setPhase('fixation');
+
+    if (trial + 1 >= TOTAL_TRIALS) {
+      fetch('http://localhost:3001/api/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newResults),
+      }).then(() => {
+        setPhase('debrief');
+      }).catch(() => {
+        setPhase('debrief');
+      });
+    } else {
+      setTrial(prev => prev + 1);
+    }
+  }, [phase, leftPerson, rightPerson, doctorOnLeft, trial, trialConfigs, results]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.key === ' ') {
-        e.preventDefault();
-        if (phase === 'instruction') {
-          setPhase('test');
-        } else if (phase === 'test') {
-          handleResponse();
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
+        return;
+      }
+
+      if (phase === 'instruction') {
+        setPhase('fixation');
+        return;
+      }
+
+      if (phase === 'stimulus') {
+        if (e.key.toLowerCase() === 'a') {
+          e.preventDefault();
+          handleResponse('left');
+        } else if (e.key.toLowerCase() === 'l') {
+          e.preventDefault();
+          handleResponse('right');
         }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [phase, handleResponse]);
 
-  useEffect(() => {
-    if (phase === 'test') {
-      startTrial();
-    }
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [phase, trial, startTrial]);
-
   if (phase === 'instruction') {
+    const canStart = subjectAge > 0 && subjectGender;
     return (
-      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center bg-white rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
-        <div className="w-16 h-16 sm:w-24 sm:h-24 bg-blue-100 text-blue-600 rounded-2xl sm:rounded-3xl flex items-center justify-center text-3xl sm:text-5xl mb-6 sm:mb-10 shadow-inner">⚡</div>
-        <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-6 sm:mb-8 tracking-tighter">Reaction Time</h1>
-        <p className="text-lg sm:text-2xl text-gray-500 mb-8 sm:mb-12 max-w-2xl leading-relaxed">
-          A massive <span className="text-blue-600 font-black">BLUE DISK</span> will appear in the center.
-          Respond as fast as possible by pressing <kbd className="hidden sm:inline-block bg-gray-900 text-white px-4 py-1 rounded-xl mx-2 font-mono">SPACE</kbd>
-          <span className="sm:hidden font-bold"> tapping the screen</span>.
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 w-full max-w-3xl mx-auto">
+        <h1 className="text-4xl font-black text-gray-900 mb-6">{t('exp.reactionTime.name')}</h1>
+        
+        <div className="flex gap-4 mb-6">
+          <input
+            type="number"
+            placeholder={t('login.age') || 'Age'}
+            value={subjectAge || ''}
+            onChange={e => setSubjectAge(parseInt(e.target.value) || 0)}
+            className="w-24 px-4 py-3 text-center text-xl border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+          />
+          <select
+            value={subjectGender}
+            onChange={e => setSubjectGender(e.target.value)}
+            className="w-40 px-4 py-3 text-center text-xl border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+          >
+            <option value="">{t('signup.gender') || 'Gender'}</option>
+            <option value="male">{t('signup.male') || 'Male'}</option>
+            <option value="female">{t('signup.female') || 'Female'}</option>
+            <option value="other">{t('signup.other') || 'Other'}</option>
+          </select>
+        </div>
+
+        <p className="text-xl text-gray-500 mb-6">
+          {t('exp.reactionTime.instruction1')}
+        </p>
+        <p className="text-lg text-gray-400 mb-6">
+          {t('exp.reactionTime.instruction2')}
+        </p>
+        <p className="text-sm text-gray-400 mb-8">
+          {TOTAL_TRIALS} {t('common.trials')}. {t('exp.reactionTime.instruction3')}
         </p>
         <button
-          onClick={() => setPhase('test')}
-          className="w-full sm:w-auto px-10 sm:px-16 py-6 sm:py-8 bg-blue-600 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xl sm:text-3xl hover:bg-blue-700 transition-all shadow-[0_20px_50px_rgba(37,99,235,0.3)] hover:scale-105 active:scale-95"
+          onClick={startFirstTrial}
+          disabled={!canStart}
+          className={`px-10 py-4 rounded-2xl font-black text-xl transition-all ${
+            canStart 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
         >
-          START EXPERIMENT
+          START
         </button>
       </div>
     );
   }
 
   if (phase === 'debrief') {
-    const avgRt = Math.round(results.reduce((acc, r) => acc + r.rt, 0) / results.length);
+    const avgRt = Math.round(results.reduce((acc, r) => acc + r.reaction_time_ms, 0) / results.length);
     return (
-      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center bg-white rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl border border-gray-100 w-full max-w-5xl mx-auto animate-fade-up">
-        <h1 className="text-4xl sm:text-6xl font-black text-gray-900 mb-8 sm:mb-10 tracking-tighter">Results</h1>
-        <div className="bg-blue-600 p-10 sm:p-16 rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl mb-8 sm:mb-12 w-full max-w-2xl text-white">
-          <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.4em] mb-4 opacity-70">Mean Response Time</p>
-          <p className="text-6xl sm:text-9xl font-black tabular-nums leading-none">{avgRt}<span className="text-2xl sm:text-3xl ml-2 font-medium opacity-50">ms</span></p>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="w-full sm:w-auto px-10 sm:px-12 py-5 sm:py-6 border-4 border-gray-100 text-gray-400 rounded-[1.5rem] sm:rounded-[2rem] font-black text-lg sm:text-xl hover:bg-gray-900 hover:text-white hover:border-black transition-all"
-        >
-          NEW SESSION
-        </button>
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 w-full max-w-3xl mx-auto">
+        <h1 className="text-4xl font-black text-gray-900 mb-6">Complete</h1>
+        <p className="text-2xl text-gray-600 mb-4">{t('common.responseTime')}</p>
+        <p className="text-6xl font-black text-blue-600 mb-8">{avgRt}ms</p>
+        <p className="text-sm text-gray-400">{t('common.resultsSaved')}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[500px] sm:min-h-[700px] w-full max-w-6xl mx-auto p-6 sm:p-12 bg-white rounded-[2.5rem] sm:rounded-[4rem] shadow-sm border border-gray-50 relative overflow-hidden touch-none" onClick={handleResponse}>
-      <div className="absolute top-8 sm:top-12 left-8 sm:left-16 flex items-center gap-6">
-        <div className="px-4 sm:px-6 py-1 sm:py-2 bg-gray-900 rounded-full text-[10px] sm:text-xs font-black text-white tracking-[0.3em] uppercase">
-          TRIAL {trial + 1} / {totalTrials}
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center w-full">
-        {stimulusVisible ? (
-          <div
-            className="w-[260px] h-[260px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px] bg-blue-600 rounded-full shadow-[0_0_80px_rgba(37,99,235,0.4)] sm:shadow-[0_0_120px_rgba(37,99,235,0.6)] animate-in zoom-in duration-75 cursor-pointer flex items-center justify-center"
-          >
-            <span className="text-white/20 font-black text-2xl sm:text-4xl animate-pulse">HIT</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-4 sm:gap-6 opacity-10">
-            <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gray-400 animate-ping"></div>
-            <div className="text-gray-900 font-black tracking-[0.5em] uppercase text-[10px] sm:text-sm text-center">Waiting...</div>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-8 sm:mt-16 w-full max-w-2xl text-center">
-        <p className="mb-4 sm:mb-6 text-gray-300 font-bold uppercase tracking-[0.3em] text-[10px] sm:text-sm">
-          <span className="hidden sm:inline">Press <kbd className="bg-gray-100 text-gray-900 px-3 py-1 rounded-lg border border-gray-200 mx-1">SPACE</kbd> or </span>
-          tap the screen as soon as the blue circle appears
-        </p>
-        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-600 transition-all duration-300"
-            style={{ width: `${(trial / totalTrials) * 100}%` }}
-          ></div>
-        </div>
-      </div>
+    <div className="flex items-center justify-center w-full h-full bg-[#1a1a1a]">
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="shadow-2xl"
+      />
     </div>
   );
 }

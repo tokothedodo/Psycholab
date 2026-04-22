@@ -32,7 +32,7 @@ export function ExperimentPage() {
   const [loading, setLoading] = useState(true);
   const [participantId] = useState(() => `PREVIEW_${Math.random().toString(36).substr(2, 5)}`);
   const [roomId] = useState(() => `DEV_${Math.random().toString(36).substr(2, 4)}`);
-  const { submitResults, error } = useResults();
+  const { submitResults } = useResults();
 
   useEffect(() => {
     if (id) {
@@ -71,32 +71,19 @@ export function ExperimentPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="fixed top-0 left-0 w-full z-[100] px-8 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="flex items-center gap-6">
-          <span className="font-mono text-sm font-bold text-gray-900 tracking-tight">
-            PREVIEW // <span className="text-blue-600">{experiment.name}</span>
-          </span>
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/experiments')} className="px-3 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-900 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all border border-gray-100">
-              EXIT PREVIEW
-            </button>
-            <button onClick={() => navigate('/dashboard')} className="px-3 py-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all border border-blue-100">
-              DASHBOARD
-            </button>
-          </div>
-        </div>
-        <span className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-          Sandboxed Environment
-        </span>
+      <header className="fixed top-0 left-0 w-full z-[100] px-6 py-4 flex items-center bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="text-sm font-medium">Back</span>
+        </button>
       </header>
 
-      {error && (
-        <div className="msg msg-error rounded-none m-0 text-center">
-          Prototype Synchronization Error: {error}
-        </div>
-      )}
-
-      <main className="experiment-layout">
+      <main className="experiment-layout pt-20">
         <ExperimentComponent
           experiment={experiment}
           onComplete={submitResults}

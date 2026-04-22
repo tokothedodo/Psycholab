@@ -76,7 +76,7 @@ export function ExperimentCatalogPage() {
               <div className="category-header">
                 <h2>{t(category.nameKey)}</h2>
                 <span className="category-count">
-                  {category.experiments.length} Experiments
+                  {category.experiments.length} {t('catalog.experimentsCount')}
                 </span>
               </div>
 

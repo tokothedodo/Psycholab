@@ -60,10 +60,6 @@ export function NavBar() {
 
                 {/* Navigation Links */}
                 <div className="nav-links">
-                    <Link to="/experiments" className="nav-link">
-                        {t('nav.experiments')}
-                    </Link>
-
                     {user ? (
                         <>
                             <Link to="/dashboard" className="nav-link">
