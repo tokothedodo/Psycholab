@@ -1,21 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import './AIAssistant.css';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  canApply?: boolean;
+  modification?: string;
 }
 
 interface AIAssistantProps {
-  currentExperiment: string | null;
+  currentExperiment?: string | null;
   experimentConfig?: Record<string, Record<string, unknown>>;
   activeWarnings?: string[];
   dismissedWarnings?: string[];
   participantCount?: number;
+  roomId?: string;
   onClose?: () => void;
 }
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://vfobqpnjzsytdalgviqk.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 const SYSTEM_PROMPT = `You are a scientific research methodology assistant for PsychoLab.ge, a cognitive psychology research platform. You have deep knowledge of experimental psychology, psychophysics, and cognitive science. You are reviewing the researcher's experiment configuration in real time. Be specific, cite papers when relevant, and keep responses concise. Never be condescending — the researcher may know more than you about their specific study goals. When warning about a setting, always explain the specific methodological risk, not just that it is wrong.`;
 
@@ -37,6 +42,7 @@ export function AIAssistant({
   activeWarnings = [],
   dismissedWarnings = [],
   participantCount = 0,
+  roomId: propRoomId,
   onClose
 }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -105,33 +111,44 @@ export function AIAssistant({
     setIsLoading(true);
 
     try {
-      if (GEMINI_API_KEY) {
+      if (SUPABASE_ANON_KEY) {
+        const context = {
+          experimentConfig,
+          activeWarnings,
+          dismissedWarnings,
+          participantCount,
+          roomId: propRoomId,
+        };
+
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+          `${SUPABASE_URL}/functions/v1/ai-assistant`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
             body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `${SYSTEM_PROMPT}\n\n${getContextInfo()}\n\nUser question: ${userMessage}`,
-                    },
-                  ],
-                },
-              ],
+              message: userMessage,
+              context,
             }),
           }
         );
 
         const data = await response.json();
-        const assistantResponse =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          'I apologize, but I couldn\'t generate a response. Please try again.';
+        let assistantResponse = data.reply || data.error || 'I apologize, but I couldn\'t generate a response. Please try again.';
+
+        const modMatch = assistantResponse.match(/\[MODIFY\]\s*(\{[^}]+\})\s*\[\/MODIFY\]/);
+        if (modMatch) {
+          try {
+            const mod = JSON.parse(modMatch[1]);
+            assistantResponse = mod.reason + '\n\n[FIXED: ' + mod.field + ' = ' + mod.value + ']';
+          } catch {}
+        }
+
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: assistantResponse },
+          { role: 'assistant', content: assistantResponse, ...(modMatch ? { canApply: true, modification: modMatch[1] } : {}) },
         ]);
       } else {
         const fallbackResponse = generateFallbackResponse(userMessage, experimentConfig, activeWarnings);
@@ -148,6 +165,24 @@ export function AIAssistant({
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleApplyModification = async (modJson: string) => {
+    try {
+      const mod = JSON.parse(modJson);
+      if (!propRoomId) {
+        alert('No room loaded');
+        return;
+      }
+      const { error } = await supabase
+        .from('rooms')
+        .update({ config: { [mod.field]: mod.value } })
+        .eq('id', propRoomId);
+      if (error) throw error;
+      alert(`Applied: ${mod.field} = ${mod.value}`);
+    } catch (err) {
+      alert('Failed to apply: ' + err);
     }
   };
 
@@ -212,6 +247,15 @@ export function AIAssistant({
             className={`ai-msg ${message.role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`}
           >
             <p className="whitespace-pre-wrap">{message.content}</p>
+            {message.canApply && message.modification && (
+              <button
+                type="button"
+                className="ai-apply-btn"
+                onClick={() => handleApplyModification(message.modification)}
+              >
+                Apply Change
+              </button>
+            )}
           </div>
         ))}
         {isLoading && (

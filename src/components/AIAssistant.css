@@ -103,3 +103,19 @@
     font-size: 0.75rem;
     margin-top: 4px;
 }
+
+.ai-apply-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.ai-apply-btn:hover {
+    background: var(--navy);
+}
