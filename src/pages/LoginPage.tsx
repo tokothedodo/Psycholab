@@ -35,96 +35,82 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-page animate-fade-in">
-      <aside className="auth-sidebar">
-        <img
-          src="/scientific_lab_auth_bg_1773641959796.png"
-          alt="Lab background"
-          className="auth-sidebar-img"
-        />
-        <div className="auth-sidebar-content">
-          <h1>Scientific Precision Meets Clarity.</h1>
-          <p>Join the next generation of cognitive researchers using PsychoLab to design, deploy, and analyze behavioral data with unprecedented ease.</p>
-        </div>
-      </aside>
+    <div className="auth-page-simple animate-fade-in">
+      <main className="auth-form-container">
+        <h2>{showReset ? t('login.resetPassword') : t('login.title')}</h2>
 
-      <main className="auth-main">
-        <div className="auth-form-container">
-          <h2>{showReset ? 'Reset Password' : t('login.title')}</h2>
-
-          {resetSent ? (
-            <div className="msg msg-info">
-              Check your email for a password reset link.
-              <button
-                onClick={() => { setShowReset(false); setResetSent(false); }}
-                className="auth-link block mt-4"
-              >
-                Back to Login
-              </button>
+        {resetSent ? (
+          <div className="msg msg-info">
+            {t('login.checkEmail')}
+            <button
+              onClick={() => { setShowReset(false); setResetSent(false); }}
+              className="auth-link block mt-4"
+            >
+              {t('common.back')}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="config-field">
+              <label className="config-label">{t('login.email')}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-premium"
+                placeholder="researcher@university.edu"
+                required
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+
+            {!showReset && (
               <div className="config-field">
-                <label className="config-label">{t('login.email')}</label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="config-label mb-0">{t('login.password')}</label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowReset(true); setError(''); }}
+                    className="text-xs text-teal hover:underline"
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  >
+                    {t('login.forgotPassword')}
+                  </button>
+                </div>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="input-premium"
-                  placeholder="researcher@university.edu"
+                  placeholder="••••••••"
                   required
                 />
               </div>
+            )}
 
-              {!showReset && (
-                <div className="config-field">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="config-label mb-0">{t('login.password')}</label>
-                    <button
-                      type="button"
-                      onClick={() => { setShowReset(true); setError(''); }}
-                      className="text-xs text-teal hover:underline"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-premium"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-              )}
+            {error && <div className="msg msg-error">{error}</div>}
 
-              {error && <div className="msg msg-error">{error}</div>}
+            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg">
+              {loading ? t('login.processing') : (showReset ? t('login.sendResetLink') : t('login.submit'))}
+            </button>
 
-              <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg">
-                {loading ? 'Processing...' : (showReset ? 'Send Reset Link' : t('login.submit'))}
+            {showReset && (
+              <button
+                type="button"
+                onClick={() => { setShowReset(false); setError(''); }}
+                className="text-sm text-text-muted hover:text-teal w-full text-center"
+              >
+                {t('common.back')}
               </button>
+            )}
+          </form>
+        )}
 
-              {showReset && (
-                <button
-                  type="button"
-                  onClick={() => { setShowReset(false); setError(''); }}
-                  className="text-sm text-text-muted hover:text-teal w-full text-center"
-                >
-                  Back to Login
-                </button>
-              )}
-            </form>
-          )}
-
-          {!showReset && (
-            <p className="mt-8 text-center text-text-muted">
-              {t('login.noAccount')}{' '}
-              <Link to="/signup" className="auth-link">{t('login.signUp')}</Link>
-            </p>
-          )}
-        </div>
+        {!showReset && (
+          <p className="mt-8 text-center text-text-muted">
+            {t('login.noAccount')}{' '}
+            <Link to="/signup" className="auth-link">{t('login.signUp')}</Link>
+          </p>
+        )}
       </main>
     </div>
   );

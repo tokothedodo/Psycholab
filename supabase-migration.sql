@@ -56,6 +56,11 @@ CREATE POLICY "Researchers can update their own rooms"
 ON rooms FOR UPDATE
 USING (auth.uid() = researcher_id);
 
+DROP POLICY IF EXISTS "Researchers can delete their own rooms" ON rooms;
+CREATE POLICY "Researchers can delete their own rooms"
+ON rooms FOR DELETE
+USING (auth.uid() = researcher_id);
+
 -- 8. Allow participants to read active rooms by code (for joining)
 DROP POLICY IF EXISTS "Anyone can read active rooms" ON rooms;
 CREATE POLICY "Anyone can read active rooms"
@@ -99,6 +104,15 @@ CREATE POLICY "Anyone can select results"
 ON results FOR SELECT
 TO anon, authenticated
 USING (true);
+
+DROP POLICY IF EXISTS "Researchers can delete results for their rooms" ON results;
+CREATE POLICY "Researchers can delete results for their rooms"
+ON results FOR DELETE
+USING (
+  room_id IN (
+    SELECT id FROM rooms WHERE researcher_id = auth.uid()
+  )
+);
 
 -- 13. (Optional but recommended) More restrictive select for researchers if needed:
 -- DROP POLICY IF EXISTS "Researchers can read results for their rooms" ON results;

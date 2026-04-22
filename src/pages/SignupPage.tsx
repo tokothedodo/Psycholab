@@ -41,72 +41,58 @@ export function SignupPage() {
   };
 
   return (
-    <div className="auth-page animate-fade-in">
-      <aside className="auth-sidebar">
-        <img
-          src="/scientific_lab_auth_bg_1773641959796.png"
-          alt="Lab background"
-          className="auth-sidebar-img"
-        />
-        <div className="auth-sidebar-content">
-          <h1>Join the Future of Research.</h1>
-          <p>Access our vast library of cognitive tasks and start collecting high-precision data from across the globe in minutes.</p>
-        </div>
-      </aside>
+    <div className="auth-page-simple animate-fade-in">
+      <main className="auth-form-container">
+        <h2>{t('signup.title')}</h2>
 
-      <main className="auth-main">
-        <div className="auth-form-container">
-          <h2>{t('signup.title')}</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="config-field">
+            <label className="config-label">{t('signup.email')}</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-premium"
+              placeholder="researcher@university.edu"
+              required
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="config-field">
-              <label className="config-label">{t('signup.email')}</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-premium"
-                placeholder="researcher@university.edu"
-                required
-              />
-            </div>
+          <div className="config-field">
+            <label className="config-label">{t('signup.password')}</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-premium"
+              placeholder="••••••••"
+              required
+            />
+          </div>
 
-            <div className="config-field">
-              <label className="config-label">{t('signup.password')}</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-premium"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+          <div className="config-field">
+            <label className="config-label">{t('signup.confirmPassword')}</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="input-premium"
+              placeholder="••••••••"
+              required
+            />
+          </div>
 
-            <div className="config-field">
-              <label className="config-label">{t('signup.confirmPassword')}</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="input-premium"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+          {error && <div className="msg msg-error">{error}</div>}
 
-            {error && <div className="msg msg-error">{error}</div>}
+          <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg">
+            {loading ? t('signup.creatingAccount') : t('signup.submit')}
+          </button>
+        </form>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg">
-              {loading ? 'Creating Account...' : t('signup.submit')}
-            </button>
-          </form>
-
-          <p className="mt-8 text-center text-text-muted">
-            {t('signup.hasAccount')}{' '}
-            <Link to="/login" className="auth-link">{t('nav.login')}</Link>
-          </p>
-        </div>
+        <p className="mt-8 text-center text-text-muted">
+          {t('signup.hasAccount')}{' '}
+          <Link to="/login" className="auth-link">{t('nav.login')}</Link>
+        </p>
       </main>
     </div>
   );

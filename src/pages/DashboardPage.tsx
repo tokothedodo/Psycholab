@@ -80,21 +80,20 @@ export function DashboardPage() {
 
   const handleDeleteRoom = async (roomId: string) => {
     console.log('Delete clicked for room:', roomId);
-    const confirmed = window.confirm('Are you sure you want to delete this room and all its results?');
+    const confirmed = window.confirm(t('dashboard.confirmDelete'));
     console.log('Confirmed:', confirmed);
     if (!confirmed) return;
     try {
       console.log('Attempting to delete room...');
       await deleteRoom(roomId);
       console.log('Room deleted, reloading...');
-      // Force clear and reload
       setRooms([]);
       await loadRooms();
       console.log('Done');
-      alert('Room deleted successfully');
+      alert(t('dashboard.deleteSuccess'));
     } catch (error) {
       console.error('Error deleting room:', error);
-      alert('Failed to delete room. You may not have permission.');
+      alert(t('dashboard.deleteFailed'));
     }
   };
 
@@ -128,9 +127,6 @@ export function DashboardPage() {
 
   const activeRooms = rooms.filter((r) => r.status === 'active' || r.status === 'draft');
   const pastRooms = rooms.filter((r) => r.status === 'closed');
-
-  const totalParticipants = Object.values(roomStats).reduce((acc, curr) => acc + curr.participants, 0);
-  const totalResults = Object.values(roomStats).reduce((acc, curr) => acc + curr.results, 0);
 
   if (loading) {
     return (
@@ -175,21 +171,6 @@ export function DashboardPage() {
           >
             + {t('dashboard.createRoom')}
           </button>
-        </div>
-
-        <div className="stats-grid">
-          <div className="stat-card">
-            <p className="stat-value">{rooms.length}</p>
-            <p className="stat-label">{t('dashboard.totalRooms')}</p>
-          </div>
-          <div className="stat-card">
-            <p className="stat-value">{totalParticipants}</p>
-            <p className="stat-label">{t('dashboard.participants')}</p>
-          </div>
-          <div className="stat-card">
-            <p className="stat-value">{totalResults}</p>
-            <p className="stat-label">{t('dashboard.dataPoints')}</p>
-          </div>
         </div>
 
         {showAI && (
