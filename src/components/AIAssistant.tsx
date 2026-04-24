@@ -22,8 +22,6 @@ interface AIAssistantProps {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://vfobqpnjzsytdalgviqk.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-const SYSTEM_PROMPT = `You are a scientific research methodology assistant for PsychoLab.ge, a cognitive psychology research platform. You have deep knowledge of experimental psychology, psychophysics, and cognitive science. You are reviewing the researcher's experiment configuration in real time. Be specific, cite papers when relevant, and keep responses concise. Never be condescending — the researcher may know more than you about their specific study goals. When warning about a setting, always explain the specific methodological risk, not just that it is wrong.`;
-
 const EXPERIMENT_GUIDANCE: Record<string, string> = {
   'muller-lyer-illusion': 'Müller-Lyer Illusion: A classic perceptual experiment testing line length perception influenced by arrow fins. Typically uses 20-40 trials. Citation: Müller, F. (1889).',
   'stroop-color-word-interference-task': 'Stroop Test: Measures cognitive interference by having participants name ink colors of color words. Validated studies use 48+ trials. Consider adding colorblind screening. Citation: Stroop, J.R. (1935).',
@@ -70,36 +68,6 @@ export function AIAssistant({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const getContextInfo = () => {
-    let context = 'Current experiment: ';
-    if (!currentExperiment) {
-      context += 'None selected yet. ';
-    } else {
-      context += EXPERIMENT_GUIDANCE[currentExperiment] || currentExperiment;
-    }
-
-    if (Object.keys(experimentConfig).length > 0) {
-      context += '\n\nCurrent experiment configurations:\n';
-      for (const [expId, config] of Object.entries(experimentConfig)) {
-        context += `\n${expId}: ${JSON.stringify(config, null, 2)}\n`;
-      }
-    }
-
-    if (activeWarnings.length > 0) {
-      context += `\n\nActive warnings in your configuration:\n${activeWarnings.join('\n')}`;
-    }
-
-    if (dismissedWarnings.length > 0) {
-      context += `\n\nDismissed warnings:\n${dismissedWarnings.join('\n')}`;
-    }
-
-    if (participantCount > 0) {
-      context += `\n\n${participantCount} participant(s) currently in the room`;
-    }
-
-    return context;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,7 +219,7 @@ export function AIAssistant({
               <button
                 type="button"
                 className="ai-apply-btn"
-                onClick={() => handleApplyModification(message.modification)}
+                onClick={() => message.modification && handleApplyModification(message.modification)}
               >
                 Apply Change
               </button>
