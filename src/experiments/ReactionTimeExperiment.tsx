@@ -19,6 +19,8 @@ interface TrialResult {
   doctor_side: string;
   chosen_side: string;
   reaction_time_ms: number;
+  trial_type?: 'control' | 'experimental';
+  is_correct?: boolean;
 }
 
 interface TrialConfig {
@@ -57,13 +59,13 @@ const REQUIRED_COMBOS = [
 function parsePedestrianInfo(filename: string): { race: string; gender: string } {
   const name = filename.replace('.png', '');
   if (name === 'black_constructionwoman') {
-    return { race: 'black', gender: 'woman' };
+    return { race: 'black', gender: 'Female' };
   }
   // Handle filenames like "indian_man1", "arab_man1", etc.
   const parts = name.split('_');
   const race = parts[0];
   const genderPart = parts[1]; // e.g., "man1" or "woman1"
-  const gender = genderPart.startsWith('man') ? 'man' : 'woman';
+  const gender = genderPart.startsWith('man') ? 'Male' : 'Female';
   return { race, gender };
 }
 
@@ -362,6 +364,8 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
       doctor_side: doctorOnLeft ? 'left' : 'right',
       chosen_side: chosenSide,
       reaction_time_ms: Math.round(rt),
+      trial_type: currentConfig.type,
+      is_correct: chosenSide === (doctorOnLeft ? 'left' : 'right'),
     };
 
     setResults([...results, trialResult]);
@@ -378,7 +382,7 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
         timestamp: new Date().toISOString(),
         totalTrials: results.length,
         responseTimeMs: avgRt,
-        accuracy: 100,
+        accuracy: Math.round((results.filter(r => r.is_correct).length / results.length) * 100),
         answer: avgRt.toString(),
         correctAnswer: 'ms',
         trialData: results.map((r, i) => ({
@@ -387,6 +391,10 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
           stimulus: r.chosen_side,
           answer: r.chosen_side,
           correctAnswer: r.doctor_side,
+          trialType: r.trial_type,
+          isCorrect: r.is_correct,
+          pedestrianRace: r.pedestrian_race,
+          pedestrianGender: r.pedestrian_gender,
         })),
       });
     } else {
