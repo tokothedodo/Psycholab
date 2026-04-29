@@ -365,7 +365,6 @@ export function ReactionTimeExperiment(_props: ReactionTimeProps) {
     setResults(newResults);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setPhase('fixation');
 
     if (trial + 1 >= TOTAL_TRIALS) {
       fetch('http://localhost:3001/api/results', {
@@ -378,6 +377,7 @@ export function ReactionTimeExperiment(_props: ReactionTimeProps) {
         setPhase('debrief');
       });
     } else {
+      setPhase('fixation');
       setTrial(prev => prev + 1);
     }
   }, [phase, leftPerson, rightPerson, doctorOnLeft, trial, trialConfigs, results]);

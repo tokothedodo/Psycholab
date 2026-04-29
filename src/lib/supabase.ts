@@ -291,7 +291,7 @@ export async function deleteRoom(roomId: string) {
 export async function reopenRoom(roomId: string) {
   const { error } = await supabase
     .from('rooms')
-    .update({ status: 'active' })
+    .update({ status: 'draft' })
     .eq('id', roomId);
   if (error) throw error;
 }

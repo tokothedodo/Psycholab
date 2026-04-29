@@ -41,8 +41,8 @@ export function RoomBuilderPage() {
         return;
       }
       await ensureUserRecord(user.id, user.email || '');
-      const room = await createRoom(user.id, selectedExperiment, experimentConfig);
-      navigate(`/room-live/${room.code}`);
+      await createRoom(user.id, selectedExperiment, experimentConfig);
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create room');
     } finally {

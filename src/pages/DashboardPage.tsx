@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { getRooms, getUniqueParticipants, getRoomResultsCount, closeRoom, deleteRoom, reopenRoom, getResults, getUser, signOut, type Room, type Result } from '../lib/supabase';
-import { AIAssistant } from '../components/AIAssistant';
+import { getRooms, getUniqueParticipants, getRoomResultsCount, closeRoom, deleteRoom, reopenRoom, activateRoom, getResults, getUser, signOut, type Room, type Result } from '../lib/supabase';
 import { getExperimentById } from '../data/experiments';
 
 import './DashboardPage.css';
@@ -13,29 +12,18 @@ export function DashboardPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [showAI, setShowAI] = useState(false);
   const [roomStats, setRoomStats] = useState<Record<string, { participants: number; results: number }>>({});
 
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      loadRooms();
-    }
-  }, [user?.id]);
-
-  const checkUser = async () => {
+  const checkUser = useCallback(async () => {
     const userData = await getUser();
     if (!userData) {
       navigate('/login');
       return;
     }
     setUser({ id: userData.id, email: userData.email });
-  };
+  }, [navigate]);
 
-  const loadRooms = async () => {
+  const loadRooms = useCallback(async () => {
     console.log('[loadRooms] Starting, user:', user?.id);
     if (!user?.id) return;
     try {
@@ -58,7 +46,17 @@ export function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    checkUser();
+  }, [checkUser]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadRooms();
+    }
+  }, [user?.id, loadRooms]);
 
   const handleCloseRoom = async (roomId: string) => {
     try {
@@ -75,6 +73,15 @@ export function DashboardPage() {
       loadRooms();
     } catch (error) {
       console.error('Error reopening room:', error);
+    }
+  };
+
+  const handleActivateRoom = async (roomId: string) => {
+    try {
+      await activateRoom(roomId);
+      loadRooms();
+    } catch (error) {
+      console.error('Error activating room:', error);
     }
   };
 
@@ -143,7 +150,7 @@ export function DashboardPage() {
           <a href="#" className="sidebar-link active">
             <span>🏠</span> {t('nav.dashboard')}
           </a>
-          <button className="sidebar-link w-full text-left" onClick={() => setShowAI(!showAI)}>
+          <button className="sidebar-link w-full text-left" onClick={() => navigate('/ai-assistant')}>
             <span>🤖</span> AI Assistant
           </button>
         </nav>
@@ -173,12 +180,6 @@ export function DashboardPage() {
           </button>
         </div>
 
-        {showAI && (
-          <div className="mb-8 animate-fade-up">
-            <AIAssistant currentExperiment={null} onClose={() => setShowAI(false)} />
-          </div>
-        )}
-
         {rooms.length === 0 ? (
           <div className="text-center py-16 bg-white border border-border rounded-xl">
             <p className="text-text-muted">{t('dashboard.noRoomsYet')}</p>
@@ -198,14 +199,15 @@ export function DashboardPage() {
                   {t('dashboard.activeStudies')}
                 </h3>
                 <div className="grid gap-6">
-                  {activeRooms.map((room) => (
+                {activeRooms.map((room) => (
                     <RoomCard
                       key={room.id}
                       room={room}
                       stats={roomStats[room.id] || { participants: 0, results: 0 }}
+                      onActivate={room.status === 'draft' ? () => handleActivateRoom(room.id) : undefined}
                       onClose={() => handleCloseRoom(room.id)}
                       onExport={() => handleExportCSV(room)}
-                      onViewLive={() => navigate(`/room-live/${room.code}`)}
+                      onShare={() => navigate(`/room-live/${room.code}`)}
                       t={t}
                     />
                   ))}
@@ -241,25 +243,27 @@ export function DashboardPage() {
 interface RoomCardProps {
   room: Room;
   stats: { participants: number; results: number };
+  onActivate?: () => void;
   onClose?: () => void;
   onReopen?: () => void;
   onDelete?: () => void;
   onExport: () => void;
-  onViewLive?: () => void;
+  onShare?: () => void;
   t: (key: string) => string;
 }
 
-function RoomCard({ room, stats, onClose, onReopen, onDelete, onExport, onViewLive, t }: RoomCardProps) {
-  const isActive = room.status === 'active' || room.status === 'draft';
+function RoomCard({ room, stats, onActivate, onClose, onReopen, onDelete, onExport, onShare, t }: RoomCardProps) {
+  const isDraft = room.status === 'draft';
+  const isActive = room.status === 'active';
   const experimentData = getExperimentById(room.experiment);
   const experimentNameKey = experimentData?.nameKey;
 
   return (
-    <div className="room-card-v2">
+    <div className="room-card-v2" onClick={isActive ? onShare : undefined} style={isActive ? { cursor: 'pointer' } : undefined}>
       <div className="room-info">
         <div className="room-title-area">
           <div className="flex items-center gap-3 mb-1">
-            <span className={`room-status-pill ${room.status === 'active' ? 'status-active' : room.status === 'draft' ? 'status-draft' : 'status-closed'}`}>
+            <span className={`room-status-pill ${isActive ? 'status-active' : isDraft ? 'status-draft' : 'status-closed'}`}>
               {t(`dashboard.status.${room.status}`)}
             </span>
             <h3>{room.title || (experimentNameKey ? t(experimentNameKey) : room.experiment)}</h3>
@@ -282,40 +286,48 @@ function RoomCard({ room, stats, onClose, onReopen, onDelete, onExport, onViewLi
       </div>
 
       <div className="room-actions">
-        {isActive && onViewLive && (
+        {isDraft && onActivate && (
           <button
-            onClick={onViewLive}
+            onClick={(e) => { e.stopPropagation(); onActivate(); }}
             className="btn-primary"
           >
             {t('dashboard.launchRoom')}
           </button>
         )}
+        {isActive && onShare && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onShare(); }}
+            className="btn-outline"
+          >
+            {t('roomBuilder.shareLink')}
+          </button>
+        )}
         <button
-          onClick={onExport}
+          onClick={(e) => { e.stopPropagation(); onExport(); }}
           className="btn-outline btn-csv"
         >
           <span>📉</span> {t('dashboard.exportCSV')}
         </button>
         {isActive && onClose && (
           <button
-            onClick={onClose}
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
             className="btn-outline"
             style={{ color: 'var(--error)', borderColor: 'rgba(220,38,38,0.2)' }}
           >
             {t('dashboard.closeRoom')}
           </button>
         )}
-        {!isActive && onReopen && (
+        {!isActive && !isDraft && onReopen && (
           <button
-            onClick={onReopen}
+            onClick={(e) => { e.stopPropagation(); onReopen(); }}
             className="btn-primary"
           >
             {t('dashboard.reopenRoom')}
           </button>
         )}
-        {!isActive && onDelete && (
+        {!isActive && !isDraft && onDelete && (
           <button
-            onClick={onDelete}
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="btn-outline"
             style={{ color: 'var(--error)', borderColor: 'rgba(220,38,38,0.2)' }}
           >

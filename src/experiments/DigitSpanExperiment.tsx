@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Experiment } from '../data/experiments';
 import type { ExperimentResults } from './ExperimentWrapper';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DigitSpanProps {
   experiment: Experiment;
@@ -10,6 +11,7 @@ interface DigitSpanProps {
 }
 
 export function DigitSpanExperiment({ experiment, onComplete, participantId, roomId }: DigitSpanProps) {
+  const { language } = useLanguage();
   const [phase, setPhase] = useState<'instruction' | 'presentation' | 'recall' | 'debrief'>('instruction');
   const [level, setLevel] = useState(3);
   const [sequence, setSequence] = useState<number[]>([]);
@@ -17,7 +19,7 @@ export function DigitSpanExperiment({ experiment, onComplete, participantId, roo
   const [input, setInput] = useState<number[]>([]);
   const [errors, setErrors] = useState(0);
   const [maxLevel, setMaxLevel] = useState(3);
-  const timeoutRef = useRef<any>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startTrial = useCallback(() => {
     const newSequence = Array.from({ length: level }, () => Math.floor(Math.random() * 10));
@@ -42,7 +44,7 @@ export function DigitSpanExperiment({ experiment, onComplete, participantId, roo
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [phase, presentationIndex, sequence]);
+  }, [phase, presentationIndex, sequence, language]);
 
   const handleInput = useCallback((digit: number) => {
     if (phase !== 'recall') return;
@@ -70,6 +72,7 @@ export function DigitSpanExperiment({ experiment, onComplete, participantId, roo
             experimentName: experiment.id,
             participantId,
             roomId,
+            language,
             timestamp: new Date().toISOString(),
             totalTrials: level - 3,
             responseTimeMs: 0,
@@ -84,7 +87,7 @@ export function DigitSpanExperiment({ experiment, onComplete, participantId, roo
               correctAnswer: val
             })),
             debrief: 'Task complete. Your working memory span is ' + maxLevel + ' digits.'
-          } as any);
+          } as ExperimentResults);
         } else {
           // Retry same level
           setPhase('presentation');
@@ -94,7 +97,7 @@ export function DigitSpanExperiment({ experiment, onComplete, participantId, roo
         }
       }
     }
-  }, [phase, input, sequence, level, errors, maxLevel, experiment.id, participantId, roomId, onComplete]);
+  }, [phase, input, sequence, level, errors, maxLevel, experiment.id, participantId, roomId, onComplete, language]);
 
   // Keyboard support
   useEffect(() => {

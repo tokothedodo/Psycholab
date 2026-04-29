@@ -12,8 +12,8 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ExperimentWrapper } from './ExperimentWrapper';
+import type { ExperimentResults } from './ExperimentWrapper';
 import type { Experiment } from '../data/experiments';
-import type { TrialData, ExperimentResults } from './ExperimentWrapper';
 
 // IMPORT YOUR CONFIG VARIABLES HERE
 // import { getDefaultConfig, getExperimentVariables } from './config';
@@ -39,26 +39,16 @@ interface YourExperimentProps {
   onComplete: (results: ExperimentResults) => void;
   participantId: string;
   roomId: string;
-  config?: Partial<YourExperimentConfig>; // Optional config from researcher
+  config?: Partial<YourExperimentConfig>;
 }
 
-/**
- * COMPONENT - Main experiment component
- * 
- * Follow this pattern:
- * 1. Use config values (with sensible defaults if not provided)
- * 2. Record all trial data with responseTimeMs
- * 3. Call onComplete with full results
- * 4. Handle all 4 languages via t() function
- */
 export function YourExperiment({
   experiment,
-  onComplete: _onComplete,
-  participantId: _participantId,
-  roomId: _roomId,
+  onComplete,
+  participantId,
+  roomId,
   config = {},
 }: YourExperimentProps) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { t } = useLanguage();
   
   // Merge config with defaults
@@ -71,19 +61,23 @@ export function YourExperiment({
     ...config as YourExperimentConfig,
   };
 
+  // Template placeholder variables - implement when creating real experiment
+  void experiment;
+  void onComplete;
+  void participantId;
+  void roomId;
+
   // Phase management
   type Phase = 'instruction' | 'practice' | 'experiment' | 'complete';
   const [phase, setPhase] = useState<Phase>('instruction');
   
   // Trial state - these will be used in real implementations
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [, _setTrialIndex] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_trialData, _setTrialData] = useState<TrialData[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_experimentStartTime, _setExperimentStartTime] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_trialStartTime, _setTrialStartTime] = useState(0);
+  // Trial variables - uncomment when implementing
+  // const [trialIndex, setTrialIndex] = useState(0);
+  // const [trialData, setTrialData] = useState<TrialData[]>([]);
+  // const [experimentStartTime, setExperimentStartTime] = useState(0);
+  // const [trialStartTime, setTrialStartTime] = useState(0);
 
   // ============================================
   // YOUR EXPERIMENT-SPECIFIC STATE HERE

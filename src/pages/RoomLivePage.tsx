@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { getUser, getRooms, activateRoom, closeRoom, getUniqueParticipants, type Room } from '../lib/supabase';
+import { getUser, getRooms, getUniqueParticipants, type Room } from '../lib/supabase';
 import { QRCode } from '../components/QRCode';
 import './RoomLivePage.css';
 
@@ -62,26 +62,6 @@ export function RoomLivePage() {
         }
     };
 
-    const handleActivate = async () => {
-        if (!room) return;
-        try {
-            await activateRoom(room.id);
-            setRoom({ ...room, status: 'active' });
-        } catch (err) {
-            setError('Failed to initialize session');
-        }
-    };
-
-    const handleClose = async () => {
-        if (!room) return;
-        try {
-            await closeRoom(room.id);
-            navigate('/dashboard');
-        } catch (err) {
-            setError('Terminating session failed');
-        }
-    };
-
     if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-navy font-bold">SYNCHRONIZING...</div></div>;
 
     if (error || !room) {
@@ -102,7 +82,7 @@ export function RoomLivePage() {
     return (
         <div className="min-h-screen bg-surface">
             <header className="p-6">
-                <button onClick={() => navigate('/dashboard')} className="btn-outline py-2 text-xs">← End Observation</button>
+                <button onClick={() => navigate('/dashboard')} className="btn-outline py-2 text-xs">← Back to Dashboard</button>
             </header>
 
             <main className="live-room-container animate-fade-in">
@@ -139,14 +119,6 @@ export function RoomLivePage() {
                         <span className="live-stat-value">{isActive ? 'LIVE' : 'WAIT'}</span>
                         <span className="live-stat-label">Data Stream</span>
                     </div>
-                </div>
-
-                <div className="live-actions mt-4">
-                    {!isActive ? (
-                        <button onClick={handleActivate} className="flex-1 btn-primary py-4 text-lg">Initialize Protocol</button>
-                    ) : (
-                        <button onClick={handleClose} className="flex-1 btn-end-session py-4 text-lg font-bold">Terminate Session</button>
-                    )}
                 </div>
 
                 <p className="mt-8 text-xs text-text-muted max-w-md">

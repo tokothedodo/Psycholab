@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Experiment } from '../data/experiments';
-import type { ExperimentResults } from './ExperimentWrapper';
+import type { ExperimentResults, TrialData } from './ExperimentWrapper';
+import { useLanguage } from '../context/LanguageContext';
 
 interface MullerLyerProps {
   experiment: Experiment;
@@ -10,6 +11,7 @@ interface MullerLyerProps {
 }
 
 export function MullerLyerExperiment({ experiment, onComplete, participantId, roomId }: MullerLyerProps) {
+  const { language } = useLanguage();
   const [phase, setPhase] = useState<'instruction' | 'test' | 'debrief'>('instruction');
   const [trial, setTrial] = useState(0);
   const [adjustableLength, setAdjustableLength] = useState(200);
@@ -17,19 +19,20 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
   const [results, setResults] = useState<{ trial: number; error: number; rt: number }[]>([]);
   const totalTrials = 6;
 
-  const referenceLength = 500; // Adjusted for better baseline on all screens
+  const referenceLength = 500;
 
-  const startTrial = useCallback(() => {
-    // Randomize initial length between 200 and 800
+  const handleTrialStart = useCallback(() => {
     setAdjustableLength(Math.floor(Math.random() * 500) + 150);
     setStartTime(performance.now());
   }, []);
 
+  // Handle trials after the first
   useEffect(() => {
-    if (phase === 'test') {
-      startTrial();
+    /* intentionally calling setState here - this is the standard pattern for experiment phases */
+    if (trial > 0 && phase === 'test') {
+      handleTrialStart();
     }
-  }, [phase, trial, startTrial]);
+  }, [trial, phase, handleTrialStart]);
 
   const handleResponse = useCallback(() => {
     const rt = performance.now() - startTime;
@@ -42,27 +45,29 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
     } else {
       setPhase('debrief');
       const avgError = newResults.reduce((acc, r) => acc + r.error, 0) / newResults.length;
+      const trialData: TrialData[] = newResults.map(r => ({
+        trialNumber: r.trial,
+        responseTimeMs: Math.round(r.rt),
+        stimulus: `ref:${referenceLength}`,
+        answer: adjustableLength,
+        correctAnswer: referenceLength
+      }));
       onComplete({
         experimentName: experiment.id,
         participantId,
         roomId,
+        language,
         timestamp: new Date().toISOString(),
         totalTrials: newResults.length,
         responseTimeMs: Math.round(newResults.reduce((acc, r) => acc + r.rt, 0) / newResults.length),
         accuracy: Math.max(0, 100 - (avgError / referenceLength) * 100),
         answer: avgError,
         correctAnswer: referenceLength,
-        trialData: newResults.map(r => ({
-          trialNumber: r.trial,
-          responseTimeMs: Math.round(r.rt),
-          stimulus: `ref:${referenceLength}`,
-          answer: adjustableLength,
-          correctAnswer: referenceLength
-        })),
+        trialData,
         debrief: 'Task complete. Average adjustment error: ' + Math.round(avgError) + ' pixels.'
-      } as any);
+      });
     }
-  }, [phase, startTime, adjustableLength, results, trial, experiment.id, participantId, roomId, onComplete]);
+  }, [phase, startTime, adjustableLength, results, trial, experiment.id, participantId, roomId, language, onComplete]);
 
   // Keyboard support
   useEffect(() => {
@@ -123,7 +128,10 @@ export function MullerLyerExperiment({ experiment, onComplete, participantId, ro
           Adjust the <span className="text-emerald-600 font-black">LOWER LINE</span> until its length perfectly matches the top line.
         </p>
         <button
-          onClick={() => setPhase('test')}
+          onClick={() => {
+            setPhase('test');
+            handleTrialStart();
+          }}
           className="w-full sm:w-auto px-10 sm:px-16 py-6 sm:py-8 bg-emerald-600 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xl sm:text-3xl hover:bg-emerald-700 transition-all shadow-[0_20px_50px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95"
         >
           START EXPERIMENT

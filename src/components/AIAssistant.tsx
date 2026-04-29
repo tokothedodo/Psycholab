@@ -34,6 +34,8 @@ const EXPERIMENT_GUIDANCE: Record<string, string> = {
   'color-category-perception-paradigm': 'Color Perception: Tests color category boundaries across languages. This is culturally significant for the Caucasus region. Citation: Berlin & Kay (1969).',
 };
 
+const STORAGE_KEY = 'ai-assistant-messages';
+
 export function AIAssistant({
   currentExperiment,
   experimentConfig = {},
@@ -43,25 +45,40 @@ export function AIAssistant({
   roomId: propRoomId,
   onClose
 }: AIAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Persist messages to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }
+  }, [messages]);
+
   // Auto-generate greeting when experiment changes
   useEffect(() => {
-    if (currentExperiment) {
-      const guidance = EXPERIMENT_GUIDANCE[currentExperiment];
-      const expName = guidance ? guidance.split(':')[0] : currentExperiment;
-      setMessages([{
-        role: 'assistant',
-        content: `You selected the ${expName}. Default settings are configured for a standard research session. Ask me anything about the methodology or variables.`,
-      }]);
-    } else {
-      setMessages([{
-        role: 'assistant',
-        content: 'Hello! I\'m your AI research assistant. Select an experiment and I\'ll help you configure it with evidence-based recommendations.',
-      }]);
+    if (messages.length === 0) {
+      if (currentExperiment) {
+        const guidance = EXPERIMENT_GUIDANCE[currentExperiment];
+        const expName = guidance ? guidance.split(':')[0] : currentExperiment;
+        setMessages([{
+          role: 'assistant',
+          content: `You selected the ${expName}. Default settings are configured for a standard research session. Ask me anything about the methodology or variables.`,
+        }]);
+      } else {
+        setMessages([{
+          role: 'assistant',
+          content: 'Hello! I\'m your AI research assistant. Select an experiment and I\'ll help you configure it with evidence-based recommendations.',
+        }]);
+      }
     }
   }, [currentExperiment]);
 
@@ -111,7 +128,9 @@ export function AIAssistant({
           try {
             const mod = JSON.parse(modMatch[1]);
             assistantResponse = mod.reason + '\n\n[FIXED: ' + mod.field + ' = ' + mod.value + ']';
-          } catch {}
+          } catch (e) {
+            console.error('Failed to parse modification:', e);
+          }
         }
 
         setMessages((prev) => [
@@ -199,8 +218,10 @@ export function AIAssistant({
     return 'I can help with:\n- Trial count recommendations\n- ISI and timing settings\n- Experiment design improvements\n- Accessibility considerations\n- Sample size guidance\n- Citation information\n\nWhat would you like to know more about?';
   };
 
+  const isEmpty = messages.length === 0;
+
   return (
-    <div className="ai-container h-full">
+    <div className={`ai-container ${isEmpty ? 'ai-container-empty' : ''}`}>
       <div className="ai-header">
         <h3>AI Methodology Assistant</h3>
         {onClose && (
@@ -208,24 +229,30 @@ export function AIAssistant({
         )}
       </div>
 
-      <div className="ai-messages h-full max-h-[300px]">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`ai-msg ${message.role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`}
-          >
-            <p className="whitespace-pre-wrap">{message.content}</p>
-            {message.canApply && message.modification && (
-              <button
-                type="button"
-                className="ai-apply-btn"
-                onClick={() => message.modification && handleApplyModification(message.modification)}
-              >
-                Apply Change
-              </button>
-            )}
+      <div className={`ai-messages ${isEmpty ? 'ai-messages-empty' : ''}`}>
+        {isEmpty ? (
+          <div className="ai-empty-state">
+            <p className="text-text-muted">Start a conversation with your AI research assistant</p>
           </div>
-        ))}
+        ) : (
+          messages.map((message, index) => (
+            <div
+              key={index}
+              className={`ai-msg ${message.role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`}
+            >
+              <p className="whitespace-pre-wrap">{message.content}</p>
+              {message.canApply && message.modification && (
+                <button
+                  type="button"
+                  className="ai-apply-btn"
+                  onClick={() => message.modification && handleApplyModification(message.modification)}
+                >
+                  Apply Change
+                </button>
+              )}
+            </div>
+          ))
+        )}
         {isLoading && (
           <div className="ai-msg ai-msg-bot">
             <p className="ai-thinking">Consulting research database...</p>

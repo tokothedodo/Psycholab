@@ -65,6 +65,9 @@ export function NavBar() {
                             <Link to="/dashboard" className="nav-link">
                                 {t('nav.dashboard') || 'Dashboard'}
                             </Link>
+                            <Link to="/ai-assistant" className="nav-link">
+                                🤖 AI
+                            </Link>
                             <span className="nav-user-email" title={user.email}>
                                 {displayEmail}
                             </span>

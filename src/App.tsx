@@ -12,6 +12,7 @@ import {
   ExperimentCatalogPage,
   ExperimentPage,
   RoomLivePage,
+  AIAssistantPage,
 } from './pages';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="/experiments/:id" element={<ExperimentPage />} />
           <Route path="/room/:code" element={<JoinExperimentPage />} />
           <Route path="/room-live/:code" element={<RoomLivePage />} />
+          <Route path="/ai-assistant" element={<AIAssistantPage />} />
         </Routes>
       </LanguageProvider>
     </BrowserRouter>

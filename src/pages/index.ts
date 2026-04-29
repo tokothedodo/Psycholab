@@ -8,3 +8,4 @@ export { JoinExperimentPage } from './JoinExperimentPage';
 export { ExperimentCatalogPage } from './ExperimentCatalogPage';
 export { ExperimentPage } from './ExperimentPage';
 export { RoomLivePage } from './RoomLivePage';
+export { AIAssistantPage } from './AIAssistantPage';

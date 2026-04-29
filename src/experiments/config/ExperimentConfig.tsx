@@ -65,7 +65,7 @@ export function ExperimentConfigPanel({
       const varType = variableConfig.type as string;
 
       switch (varType) {
-        case 'number':
+        case 'number': {
           const step = (variableConfig.step as number) || 1;
           const min = variableConfig.min as number;
           const max = variableConfig.max as number;
@@ -97,10 +97,11 @@ export function ExperimentConfigPanel({
                 </button>
               </div>
               {(variableConfig.unit as string) && <span className="text-text-muted text-xs font-semibold uppercase">{variableConfig.unit as string}</span>}
-            </div>
-          );
+             </div>
+           );
+         }
 
-        case 'slider':
+         case 'slider': {
           return (
             <div className="space-y-2">
               <input
@@ -117,10 +118,11 @@ export function ExperimentConfigPanel({
                 <span className="text-navy font-bold">{value as string}{variableConfig.unit as string}</span>
                 <span>{variableConfig.max as number}{variableConfig.unit as string}</span>
               </div>
-            </div>
-          );
+             </div>
+           );
+         }
 
-        case 'boolean':
+         case 'boolean':
           return (
             <div
               onClick={() => handleChange(variableId, !value)}
@@ -145,7 +147,7 @@ export function ExperimentConfigPanel({
             </select>
           );
 
-        case 'multiselect':
+        case 'multiselect': {
           const selected = (value as string[]) || [];
           return (
             <div className="grid grid-cols-2 gap-2">
@@ -165,10 +167,11 @@ export function ExperimentConfigPanel({
                   <span className="text-xs">{t(opt.labelKey)}</span>
                 </label>
               ))}
-            </div>
-          );
+             </div>
+           );
+         }
 
-        case 'textarea':
+         case 'textarea':
           return (
             <textarea
               value={(value as string) || ''}

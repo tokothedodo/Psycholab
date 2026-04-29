@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Experiment } from '../data/experiments';
-import type { ExperimentResults } from './ExperimentWrapper';
+import type { ExperimentResults, TrialData } from './ExperimentWrapper';
+import { useLanguage } from '../context/LanguageContext';
 
 interface StroopProps {
   experiment: Experiment;
@@ -17,6 +18,7 @@ const COLORS = [
 ];
 
 export function StroopExperiment({ experiment, onComplete, participantId, roomId }: StroopProps) {
+  const { language } = useLanguage();
   const [phase, setPhase] = useState<'instruction' | 'test' | 'debrief'>('instruction');
   const [trial, setTrial] = useState(0);
   const [stimulus, setStimulus] = useState({ word: '', color: '', congruent: false });
@@ -24,7 +26,7 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
   const [results, setResults] = useState<{ trial: number; rt: number; correct: boolean; congruent: boolean }[]>([]);
   const totalTrials = 12;
 
-  const startTrial = useCallback(() => {
+  const handleTrialStart = useCallback(() => {
     const isCongruent = Math.random() > 0.5;
     const wordIndex = Math.floor(Math.random() * COLORS.length);
     let colorIndex;
@@ -45,10 +47,10 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
   }, []);
 
   useEffect(() => {
-    if (phase === 'test') {
-      startTrial();
+    if (trial > 0 && phase === 'test') {
+      handleTrialStart();
     }
-  }, [phase, trial, startTrial]);
+  }, [trial, phase, handleTrialStart]);
 
   const handleResponse = useCallback((selectedColorName: string) => {
     if (phase !== 'test') return;
@@ -76,27 +78,30 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
         ? incongruentResults.reduce((acc, r) => acc + r.rt, 0) / incongruentResults.length
         : 0;
 
+      const trialData: TrialData[] = newResults.map(r => ({
+        trialNumber: r.trial,
+        responseTimeMs: Math.round(r.rt),
+        stimulus: stimulus.word,
+        answer: r.correct ? 'correct' : 'incorrect',
+        correctAnswer: 'correct'
+      }));
+
       onComplete({
         experimentName: experiment.id,
         participantId,
         roomId,
+        language,
         timestamp: new Date().toISOString(),
         totalTrials: newResults.length,
         responseTimeMs: Math.round(avgRt),
         accuracy,
         answer: Math.round(avgIncongruentRt - avgCongruentRt),
         correctAnswer: 'stroop_effect_ms',
-        trialData: newResults.map(r => ({
-          trialNumber: r.trial,
-          responseTimeMs: Math.round(r.rt),
-          stimulus: stimulus.word,
-          answer: isCorrect ? 'correct' : 'incorrect',
-          correctAnswer: 'correct'
-        })),
+        trialData,
         debrief: `Stroop effect: Incongruent RT (${Math.round(avgIncongruentRt)}ms) - Congruent RT (${Math.round(avgCongruentRt)}ms) = ${Math.round(avgIncongruentRt - avgCongruentRt)}ms.`
-      } as any);
+      });
     }
-  }, [phase, startTime, stimulus, results, trial, experiment.id, participantId, roomId, onComplete]);
+  }, [phase, startTime, stimulus, results, trial, experiment.id, participantId, roomId, language, onComplete]);
 
   // Keyboard support
   useEffect(() => {
@@ -140,7 +145,10 @@ export function StroopExperiment({ experiment, onComplete, participantId, roomId
         </div>
 
         <button
-          onClick={() => setPhase('test')}
+          onClick={() => {
+            setPhase('test');
+            handleTrialStart();
+          }}
           className="w-full sm:w-auto px-10 sm:px-16 py-6 sm:py-8 bg-black text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xl sm:text-3xl hover:bg-gray-800 transition-all shadow-2xl hover:scale-105 active:scale-95"
         >
           START EXPERIMENT

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Experiment } from '../data/experiments';
-import type { ExperimentResults } from './ExperimentWrapper';
+import type { ExperimentResults, TrialData } from './ExperimentWrapper';
+import { useLanguage } from '../context/LanguageContext';
 
 interface UltimatumProps {
   experiment: Experiment;
@@ -10,6 +11,7 @@ interface UltimatumProps {
 }
 
 export function UltimatumExperiment({ experiment, onComplete, participantId, roomId }: UltimatumProps) {
+  const { language } = useLanguage();
   const [phase, setPhase] = useState<'instruction' | 'test' | 'debrief'>('instruction');
   const [trial, setTrial] = useState(0);
   const [offer, setOffer] = useState(0);
@@ -18,8 +20,7 @@ export function UltimatumExperiment({ experiment, onComplete, participantId, roo
   const totalTrials = 10;
   const totalCoins = 100;
 
-  const startTrial = useCallback(() => {
-    // Generate a semi-random offer (some fair, some unfair)
+  const handleTrialStart = useCallback(() => {
     const possibleOffers = [10, 15, 20, 25, 30, 40, 50];
     const newOffer = possibleOffers[Math.floor(Math.random() * possibleOffers.length)];
     setOffer(newOffer);
@@ -27,10 +28,10 @@ export function UltimatumExperiment({ experiment, onComplete, participantId, roo
   }, []);
 
   useEffect(() => {
-    if (phase === 'test') {
-      startTrial();
+    if (trial > 0 && phase === 'test') {
+      handleTrialStart();
     }
-  }, [phase, trial, startTrial]);
+  }, [trial, phase, handleTrialStart]);
 
   const handleResponse = useCallback((decision: 'accept' | 'reject') => {
     if (phase !== 'test') return;
@@ -46,27 +47,30 @@ export function UltimatumExperiment({ experiment, onComplete, participantId, roo
       const avgRt = newResults.reduce((acc, r) => acc + r.rt, 0) / newResults.length;
       const rejectionRate = (newResults.filter(r => r.decision === 'reject').length / newResults.length) * 100;
 
+      const trialData: TrialData[] = newResults.map(r => ({
+        trialNumber: r.trial,
+        responseTimeMs: Math.round(r.rt),
+        stimulus: `offer:${r.offer}`,
+        answer: r.decision,
+        correctAnswer: 'fairness_judgment'
+      }));
+
       onComplete({
         experimentName: experiment.id,
         participantId,
         roomId,
+        language,
         timestamp: new Date().toISOString(),
         totalTrials: newResults.length,
         responseTimeMs: Math.round(avgRt),
         accuracy: 100 - rejectionRate,
         answer: rejectionRate,
         correctAnswer: 'rejection_rate',
-        trialData: newResults.map(r => ({
-          trialNumber: r.trial,
-          responseTimeMs: Math.round(r.rt),
-          stimulus: `offer:${r.offer}`,
-          answer: r.decision,
-          correctAnswer: 'fairness_judgment'
-        })),
+        trialData,
         debrief: 'Task complete. You rejected ' + Math.round(rejectionRate) + '% of offers.'
-      } as any);
+      });
     }
-  }, [phase, startTime, offer, results, trial, experiment.id, participantId, roomId, onComplete]);
+  }, [phase, startTime, offer, results, trial, experiment.id, participantId, roomId, language, onComplete]);
 
   // Keyboard support
   useEffect(() => {
@@ -100,7 +104,10 @@ export function UltimatumExperiment({ experiment, onComplete, participantId, roo
           If you <b>REJECT</b>, both of you leave with <span className="text-rose-600 font-black">ZERO</span>.
         </p>
         <button
-          onClick={() => setPhase('test')}
+          onClick={() => {
+            setPhase('test');
+            handleTrialStart();
+          }}
           className="w-full sm:w-auto px-10 sm:px-16 py-6 sm:py-8 bg-orange-600 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xl sm:text-3xl hover:bg-orange-700 transition-all shadow-2xl hover:scale-105 active:scale-95"
         >
           START EXPERIMENT

@@ -34,13 +34,17 @@ export function ExperimentPage() {
   const [roomId] = useState(() => `DEV_${Math.random().toString(36).substr(2, 4)}`);
   const { submitResults } = useResults();
 
-  useEffect(() => {
+  const initializeExperiment = () => {
     if (id) {
       const exp = getExperimentById(id);
       if (exp) setExperiment(exp);
     }
     setLoading(false);
-  }, [id]);
+  };
+
+  useEffect(() => {
+    initializeExperiment();
+  }, [id, initializeExperiment]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-surface font-mono">PREVIEW INITIALIZING...</div>;
 

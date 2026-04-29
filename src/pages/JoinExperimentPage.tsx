@@ -49,23 +49,6 @@ export function JoinExperimentPage() {
     { code: 'az', name: 'Azerbaijani', flag: '🇦🇿' },
   ];
 
-  useEffect(() => {
-    if (code) loadRoom();
-
-    // Polling for room status if it's in draft
-    const interval = setInterval(async () => {
-      if (code && (!room || room.status === 'draft')) {
-        const roomData = await getRoomByCode(code);
-        if (roomData && roomData.status !== room?.status) {
-          console.log('[PsychoLab] 🛰️ Room status updated:', roomData.status);
-          setRoom(roomData);
-        }
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [code, room?.status]);
-
   const loadRoom = async () => {
     try {
       const roomData = await getRoomByCode(code!);
@@ -80,6 +63,22 @@ export function JoinExperimentPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (code) loadRoom();
+
+    const interval = setInterval(async () => {
+      if (code && (!room || room.status === 'draft')) {
+        const roomData = await getRoomByCode(code);
+        if (roomData && roomData.status !== room?.status) {
+          console.log('[PsychoLab] 🛰️ Room status updated:', roomData.status);
+          setRoom(roomData);
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [code, room?.status, loadRoom]);
 
   const handleExperimentComplete = async (results: ExperimentResults) => {
     if (!room) return;
