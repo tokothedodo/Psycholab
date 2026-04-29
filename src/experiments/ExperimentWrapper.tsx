@@ -24,8 +24,14 @@ export interface ExperimentResults {
   accuracy: number;
   answer: string | number | boolean;
   correctAnswer: string | number | boolean;
-  trialData: TrialData[];
+  trialData?: TrialData[];
   debrief?: string;
+  age?: number;
+  gender?: string;
+  white_male_avg?: number;
+  white_female_avg?: number;
+  black_male_avg?: number;
+  black_female_avg?: number;
 }
 
 interface ExperimentWrapperProps {

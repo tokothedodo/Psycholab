@@ -41,6 +41,12 @@ export interface Result {
   trial_data?: unknown;
   accuracy?: number;
   total_trials?: number;
+  age?: number;
+  gender?: string;
+  white_male_avg?: number;
+  white_female_avg?: number;
+  black_male_avg?: number;
+  black_female_avg?: number;
 }
 
 // ─── Auth ───────────────────────────────────────────────────────────────────

@@ -109,12 +109,18 @@ export function DashboardPage() {
       const results = await getResults(room.id);
 
       const csvContent = [
-        'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,answer,correct_answer,timestamp,trial_data',
+        'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,age,gender,white_male_avg,white_female_avg,black_male_avg,black_female_avg,answer,correct_answer,timestamp',
         ...results.map((r: Result) => {
+          const ageStr = r.age !== undefined ? r.age : '';
+          const genderStr = r.gender || '';
+          const wm = r.white_male_avg !== undefined ? r.white_male_avg : '';
+          const wf = r.white_female_avg !== undefined ? r.white_female_avg : '';
+          const bm = r.black_male_avg !== undefined ? r.black_male_avg : '';
+          const bf = r.black_female_avg !== undefined ? r.black_female_avg : '';
           const answerStr = String(r.answer).replace(/"/g, '""');
           const correctStr = String(r.correct_answer).replace(/"/g, '""');
-          const trialStr = r.trial_data ? JSON.stringify(r.trial_data).replace(/"/g, '""') : '';
-          return `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.accuracy || ''},${r.total_trials || ''},"${answerStr}","${correctStr}",${r.timestamp},"${trialStr}"`;
+          
+          return `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.accuracy || ''},${r.total_trials || ''},${ageStr},${genderStr},${wm},${wf},${bm},${bf},"${answerStr}","${correctStr}",${r.timestamp}`;
         }),
       ].join('\n');
 

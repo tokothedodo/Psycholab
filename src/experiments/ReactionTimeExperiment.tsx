@@ -103,6 +103,7 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
   const doctorImageRef = useRef<HTMLImageElement | null>(null);
   const pedestrianImageRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const timeoutRef = useRef<number | null>(null);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     if (phase === 'instruction') return;
@@ -268,7 +269,7 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
   }, []);
 
   const handleResponse = useCallback((chosenSide: 'left' | 'right') => {
-    if (phase !== 'stimulus') return;
+    if (phase !== 'stimulus' || completedRef.current) return;
 
     const rt = performance.now() - startTimeRef.current;
     const currentConfig = trialConfigs[trial];
@@ -298,53 +299,54 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
       is_correct: chosenSide === (doctorOnLeft ? 'left' : 'right'),
     };
 
-    setResults([...results, trialResult]);
+    const newResults = [...results, trialResult];
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     if (trial + 1 >= TOTAL_TRIALS) {
-      const avgRt = Math.round(results.reduce((acc, r) => acc + r.reaction_time_ms, 0) / results.length);
-      
+      completedRef.current = true;
+
+      const avgRt = Math.round(newResults.reduce((acc, r) => acc + r.reaction_time_ms, 0) / newResults.length);
+
       // Calculate 4-category averages from experimental + correct trials
-      const experimentalCorrect = results.filter(r => r.trial_type === 'experimental' && r.is_correct);
-      
+      const experimentalCorrect = newResults.filter(r => r.trial_type === 'experimental' && r.is_correct);
+
       const calcAvg = (race: string, gender: string) => {
         const trials = experimentalCorrect.filter(r => r.pedestrian_race === race && r.pedestrian_gender === gender);
         return trials.length > 0 ? Math.round(trials.reduce((acc, r) => acc + r.reaction_time_ms, 0) / trials.length) : 0;
       };
-      
-      const whiteMaleRt = calcAvg('white', 'Male');
-      const whiteFemaleRt = calcAvg('white', 'Female');
-      const blackMaleRt = calcAvg('black', 'Male');
-      const blackFemaleRt = calcAvg('black', 'Female');
-      
-      const answerStr = `WM: ${whiteMaleRt}ms, WF: ${whiteFemaleRt}ms, BM: ${blackMaleRt}ms, BF: ${blackFemaleRt}ms`;
-      
+
+      const wmAvg = calcAvg('white', 'Male');
+      const wfAvg = calcAvg('white', 'Female');
+      const bmAvg = calcAvg('black', 'Male');
+      const bfAvg = calcAvg('black', 'Female');
+
+      const overallAccuracy = Math.round((newResults.filter(r => r.is_correct).length / newResults.length) * 100);
+
       onComplete({
         experimentName: experiment.id,
         participantId,
         roomId,
         language,
-        timestamp: new Date().toISOString(),
-        totalTrials: results.length,
+        age: subjectAge,
+        gender: subjectGender,
+        white_male_avg: wmAvg,
+        white_female_avg: wfAvg,
+        black_male_avg: bmAvg,
+        black_female_avg: bfAvg,
+        accuracy: overallAccuracy,
         responseTimeMs: avgRt,
-        accuracy: Math.round((results.filter(r => r.is_correct).length / results.length) * 100),
-        answer: answerStr,
+        answer: `WM: ${wmAvg}ms, WF: ${wfAvg}ms, BM: ${bmAvg}ms, BF: ${bfAvg}ms`,
         correctAnswer: 'ms',
-        trialData: results.map((r, i) => ({
-          trialNumber: i + 1,
-          type: r.trial_type,
-          race: r.pedestrian_race,
-          gender: r.pedestrian_gender,
-          rt: r.reaction_time_ms,
-          isCorrect: r.is_correct,
-        })),
+        timestamp: new Date().toISOString(),
+        totalTrials: newResults.length,
       });
     } else {
+      setResults(newResults);
       setPhase('fixation');
       setTrial(prev => prev + 1);
     }
-    }, [phase, leftPerson, rightPerson, doctorOnLeft, trial, trialConfigs, results, onComplete, experiment, participantId, roomId, language]);
+  }, [phase, trial, trialConfigs, results, onComplete, experiment, participantId, roomId, language, subjectAge, subjectGender, doctorOnLeft, leftPerson, rightPerson]);
 
   const startFirstTrial = useCallback(() => {
     const configs = generateTrials();
