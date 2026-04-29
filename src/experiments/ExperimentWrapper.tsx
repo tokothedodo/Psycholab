@@ -3,10 +3,14 @@ import type { Experiment } from '../data/experiments';
 
 export interface TrialData {
   trialNumber: number;
-  responseTimeMs: number;
-  answer: string | number | boolean;
-  correctAnswer: string | number | boolean;
-  stimulus?: unknown;
+  responseTimeMs?: number;
+  answer?: string | number | boolean;
+  correctAnswer?: string | number | boolean;
+  type?: 'control' | 'experimental';
+  race?: string;
+  gender?: string;
+  rt?: number;
+  isCorrect?: boolean;
 }
 
 export interface ExperimentResults {

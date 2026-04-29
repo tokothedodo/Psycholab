@@ -108,55 +108,14 @@ export function DashboardPage() {
     try {
       const results = await getResults(room.id);
 
-      // Calculate reaction time averages for Reaction Time experiment
-      const calculateRtAverages = (trialData: unknown) => {
-        if (!Array.isArray(trialData)) return null;
-        const experimentalTrials = trialData.filter(
-          (t: any) => t.trialType === 'experimental' && t.isCorrect === true
-        );
-        if (experimentalTrials.length === 0) return null;
-
-        const groups: Record<string, number[]> = {
-          'White Male': [],
-          'White Female': [],
-          'Black Male': [],
-          'Black Female': [],
-        };
-
-        experimentalTrials.forEach((t: any) => {
-          const race = t.pedestrianRace || '';
-          const gender = t.pedestrianGender || '';
-          const key = `${race.charAt(0).toUpperCase() + race.slice(1)} ${gender}`;
-          if (groups[key]) {
-            groups[key].push(t.responseTimeMs);
-          }
-        });
-
-        const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
-        return {
-          whiteMaleRt: avg(groups['White Male']),
-          whiteFemaleRt: avg(groups['White Female']),
-          blackMaleRt: avg(groups['Black Male']),
-          blackFemaleRt: avg(groups['Black Female']),
-        };
-      };
-
-      const csvRows = results.map((r: Result) => {
-        const rtAverages = r.trial_data ? calculateRtAverages(r.trial_data) : null;
-        const rtPart = rtAverages
-          ? `${rtAverages.whiteMaleRt},${rtAverages.whiteFemaleRt},${rtAverages.blackMaleRt},${rtAverages.blackFemaleRt}`
-          : ',,,';
-        
-        const answerStr = String(r.answer).replace(/"/g, '""');
-        const correctStr = String(r.correct_answer).replace(/"/g, '""');
-        const trialStr = r.trial_data ? JSON.stringify(r.trial_data).replace(/"/g, '""') : '';
-        
-        return `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.accuracy || ''},${r.total_trials || ''},"${answerStr}","${correctStr}",${r.timestamp},${rtPart},"${trialStr}"`;
-      });
-
       const csvContent = [
-        'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,answer,correct_answer,timestamp,white_male_rt,white_female_rt,black_male_rt,black_female_rt,trial_data',
-        ...csvRows,
+        'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,answer,correct_answer,timestamp,trial_data',
+        ...results.map((r: Result) => {
+          const answerStr = String(r.answer).replace(/"/g, '""');
+          const correctStr = String(r.correct_answer).replace(/"/g, '""');
+          const trialStr = r.trial_data ? JSON.stringify(r.trial_data).replace(/"/g, '""') : '';
+          return `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.accuracy || ''},${r.total_trials || ''},"${answerStr}","${correctStr}",${r.timestamp},"${trialStr}"`;
+        }),
       ].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv' });

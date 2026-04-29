@@ -33,27 +33,17 @@ const CANVAS_HEIGHT = 720;
 const TOTAL_TRIALS = 30;
 
 const PEDESTRIAN_IMAGES = [
-  'arab_man1.png',
-  'arab_woman1.png',
-  'black_man1.png',
-  'black_woman1.png',
-  'black_constructionwoman.png',
-  'indian_man1.png',
-  'indian_woman1.png',
   'white_man1.png',
   'white_woman1.png',
+  'black_man1.png',
+  'black_woman1.png',
 ];
 
 const REQUIRED_COMBOS = [
-  'arab_man1.png',
-  'arab_woman1.png',
-  'black_man1.png',
-  'black_woman1.png',
-  'black_constructionwoman.png',
-  'indian_man1.png',
-  'indian_woman1.png',
   'white_man1.png',
   'white_woman1.png',
+  'black_man1.png',
+  'black_woman1.png',
 ];
 
 function parsePedestrianInfo(filename: string): { race: string; gender: string } {
@@ -184,12 +174,13 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
         ctx.fillText(text, x, y);
       };
 
+      // Draw left person
       if (leftPerson === 'doctor' && doctorImageRef.current) {
         const docWidth = doctorImageRef.current.width * personScale;
         const docHeight = doctorImageRef.current.height * personScale;
         ctx.drawImage(doctorImageRef.current, leftX - docWidth / 2, groundY - docHeight, docWidth, docHeight);
         drawSurvivalLabel(leftX, groundY - docHeight - 20, leftSurvival);
-      } else if (leftPerson !== 'doctor') {
+      } else {
         const leftImg = pedestrianImageRef.current.get(leftPerson);
         if (leftImg && leftImg.complete) {
           const imgWidth = leftImg.width * personScale;
@@ -199,12 +190,13 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
         }
       }
 
+      // Draw right person
       if (rightPerson === 'doctor' && doctorImageRef.current) {
         const docWidth = doctorImageRef.current.width * personScale;
         const docHeight = doctorImageRef.current.height * personScale;
         ctx.drawImage(doctorImageRef.current, rightX - docWidth / 2, groundY - docHeight, docWidth, docHeight);
         drawSurvivalLabel(rightX, groundY - docHeight - 20, rightSurvival);
-      } else if (rightPerson !== 'doctor') {
+      } else {
         const rightImg = pedestrianImageRef.current.get(rightPerson);
         if (rightImg && rightImg.complete) {
           const imgWidth = rightImg.width * personScale;
@@ -226,12 +218,12 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
     const currentConfig = trialConfigs[trial];
     const isExperimental = currentConfig.type === 'experimental';
 
-    const isDoctorLeft = Math.random() < 0.5;
-    setDoctorOnLeft(isDoctorLeft);
-
     if (isExperimental) {
+      // Experimental: 1 doctor + 1 pedestrian
       const pedestrian = currentConfig.pedestrian || PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
       const survivalRate = Math.floor(Math.random() * 100) + 1;
+      const isDoctorLeft = Math.random() < 0.5;
+      setDoctorOnLeft(isDoctorLeft);
       if (isDoctorLeft) {
         setLeftPerson('doctor');
         setRightPerson(pedestrian);
@@ -244,86 +236,24 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
         setRightSurvival(survivalRate);
       }
     } else {
-      const person1 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
-      let person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
-      while (person2 === person1) {
-        person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      // Control: 2 pedestrians, no doctor
+      const idx1 = Math.floor(Math.random() * PEDESTRIAN_IMAGES.length);
+      let idx2 = Math.floor(Math.random() * PEDESTRIAN_IMAGES.length);
+      while (idx2 === idx1) {
+        idx2 = Math.floor(Math.random() * PEDESTRIAN_IMAGES.length);
       }
+      setLeftPerson(PEDESTRIAN_IMAGES[idx1]);
+      setRightPerson(PEDESTRIAN_IMAGES[idx2]);
+      setDoctorOnLeft(true); // irrelevant for control
       const survival1 = Math.floor(Math.random() * 100) + 1;
       const survival2 = Math.floor(Math.random() * 100) + 1;
-      if (isDoctorLeft) {
-        setLeftPerson(person1);
-        setRightPerson(person2);
-        setLeftSurvival(survival1);
-        setRightSurvival(survival2);
-      } else {
-        setLeftPerson(person2);
-        setRightPerson(person1);
-        setLeftSurvival(survival2);
-        setRightSurvival(survival1);
-      }
+      setLeftSurvival(survival1);
+      setRightSurvival(survival2);
     }
 
-    setPhase('fixation');
-
-    timeoutRef.current = window.setTimeout(() => {
-      setPhase('stimulus');
-      startTimeRef.current = performance.now();
-    }, 500);
+    setPhase('stimulus');
+    startTimeRef.current = performance.now();
   }, [trial, trialConfigs]);
-
-  const startFirstTrial = useCallback(() => {
-    const configs = generateTrials();
-    setTrialConfigs(configs);
-
-    const currentConfig = configs[0];
-    const isExperimental = currentConfig.type === 'experimental';
-
-    const isDoctorLeft = Math.random() < 0.5;
-    setDoctorOnLeft(isDoctorLeft);
-
-    if (isExperimental) {
-      const pedestrian = currentConfig.pedestrian || PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
-      const survivalRate = Math.floor(Math.random() * 100) + 1;
-      if (isDoctorLeft) {
-        setLeftPerson('doctor');
-        setRightPerson(pedestrian);
-        setLeftSurvival(survivalRate);
-        setRightSurvival(survivalRate);
-      } else {
-        setLeftPerson(pedestrian);
-        setRightPerson('doctor');
-        setLeftSurvival(survivalRate);
-        setRightSurvival(survivalRate);
-      }
-    } else {
-      const person1 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
-      let person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
-      while (person2 === person1) {
-        person2 = PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
-      }
-      const survival1 = Math.floor(Math.random() * 100) + 1;
-      const survival2 = Math.floor(Math.random() * 100) + 1;
-      if (isDoctorLeft) {
-        setLeftPerson(person1);
-        setRightPerson(person2);
-        setLeftSurvival(survival1);
-        setRightSurvival(survival2);
-      } else {
-        setLeftPerson(person2);
-        setRightPerson(person1);
-        setLeftSurvival(survival2);
-        setRightSurvival(survival1);
-      }
-    }
-
-    setPhase('fixation');
-
-    timeoutRef.current = window.setTimeout(() => {
-      setPhase('stimulus');
-      startTimeRef.current = performance.now();
-    }, 500);
-  }, []);
 
   useEffect(() => {
     if (trial > 0 && phase === 'fixation') {
@@ -374,6 +304,22 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
 
     if (trial + 1 >= TOTAL_TRIALS) {
       const avgRt = Math.round(results.reduce((acc, r) => acc + r.reaction_time_ms, 0) / results.length);
+      
+      // Calculate 4-category averages from experimental + correct trials
+      const experimentalCorrect = results.filter(r => r.trial_type === 'experimental' && r.is_correct);
+      
+      const calcAvg = (race: string, gender: string) => {
+        const trials = experimentalCorrect.filter(r => r.pedestrian_race === race && r.pedestrian_gender === gender);
+        return trials.length > 0 ? Math.round(trials.reduce((acc, r) => acc + r.reaction_time_ms, 0) / trials.length) : 0;
+      };
+      
+      const whiteMaleRt = calcAvg('white', 'Male');
+      const whiteFemaleRt = calcAvg('white', 'Female');
+      const blackMaleRt = calcAvg('black', 'Male');
+      const blackFemaleRt = calcAvg('black', 'Female');
+      
+      const answerStr = `WM: ${whiteMaleRt}ms, WF: ${whiteFemaleRt}ms, BM: ${blackMaleRt}ms, BF: ${blackFemaleRt}ms`;
+      
       onComplete({
         experimentName: experiment.id,
         participantId,
@@ -383,18 +329,15 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
         totalTrials: results.length,
         responseTimeMs: avgRt,
         accuracy: Math.round((results.filter(r => r.is_correct).length / results.length) * 100),
-        answer: avgRt.toString(),
+        answer: answerStr,
         correctAnswer: 'ms',
         trialData: results.map((r, i) => ({
           trialNumber: i + 1,
-          responseTimeMs: r.reaction_time_ms,
-          stimulus: r.chosen_side,
-          answer: r.chosen_side,
-          correctAnswer: r.doctor_side,
-          trialType: r.trial_type,
+          type: r.trial_type,
+          race: r.pedestrian_race,
+          gender: r.pedestrian_gender,
+          rt: r.reaction_time_ms,
           isCorrect: r.is_correct,
-          pedestrianRace: r.pedestrian_race,
-          pedestrianGender: r.pedestrian_gender,
         })),
       });
     } else {
@@ -402,6 +345,46 @@ export function ReactionTimeExperiment({ experiment, onComplete, participantId, 
       setTrial(prev => prev + 1);
     }
     }, [phase, leftPerson, rightPerson, doctorOnLeft, trial, trialConfigs, results, onComplete, experiment, participantId, roomId, language]);
+
+  const startFirstTrial = useCallback(() => {
+    const configs = generateTrials();
+    setTrialConfigs(configs);
+
+    const currentConfig = configs[0];
+    const isExperimental = currentConfig.type === 'experimental';
+
+    const isDoctorLeft = Math.random() < 0.5;
+    setDoctorOnLeft(isDoctorLeft);
+
+    if (isExperimental) {
+      const pedestrian = currentConfig.pedestrian || PEDESTRIAN_IMAGES[Math.floor(Math.random() * PEDESTRIAN_IMAGES.length)];
+      const survivalRate = Math.floor(Math.random() * 100) + 1;
+      if (isDoctorLeft) {
+        setLeftPerson('doctor');
+        setRightPerson(pedestrian);
+        setLeftSurvival(survivalRate);
+        setRightSurvival(survivalRate);
+      } else {
+        setLeftPerson(pedestrian);
+        setRightPerson('doctor');
+        setLeftSurvival(survivalRate);
+        setRightSurvival(survivalRate);
+      }
+    } else {
+      const idx1 = Math.floor(Math.random() * PEDESTRIAN_IMAGES.length);
+      let idx2 = Math.floor(Math.random() * PEDESTRIAN_IMAGES.length);
+      while (idx2 === idx1) {
+        idx2 = Math.floor(Math.random() * PEDESTRIAN_IMAGES.length);
+      }
+      setLeftPerson(PEDESTRIAN_IMAGES[idx1]);
+      setRightPerson(PEDESTRIAN_IMAGES[idx2]);
+      setLeftSurvival(Math.floor(Math.random() * 100) + 1);
+      setRightSurvival(Math.floor(Math.random() * 100) + 1);
+    }
+
+    setPhase('stimulus');
+    startTimeRef.current = performance.now();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
