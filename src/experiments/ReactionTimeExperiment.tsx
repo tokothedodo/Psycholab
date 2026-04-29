@@ -47,6 +47,7 @@ const REQUIRED_COMBOS = [
   'arab_woman1.png',
   'black_man1.png',
   'black_woman1.png',
+  'black_constructionwoman.png',
   'indian_man1.png',
   'indian_woman1.png',
   'white_man1.png',
@@ -58,9 +59,11 @@ function parsePedestrianInfo(filename: string): { race: string; gender: string }
   if (name === 'black_constructionwoman') {
     return { race: 'black', gender: 'woman' };
   }
+  // Handle filenames like "indian_man1", "arab_man1", etc.
   const parts = name.split('_');
   const race = parts[0];
-  const gender = parts[1];
+  const genderPart = parts[1]; // e.g., "man1" or "woman1"
+  const gender = genderPart.startsWith('man') ? 'man' : 'woman';
   return { race, gender };
 }
 
@@ -88,8 +91,8 @@ function generateTrials(): TrialConfig[] {
   return shuffleArray(trials);
 }
 
-export function ReactionTimeExperiment(_props: ReactionTimeProps) {
-  const { t } = useLanguage();
+export function ReactionTimeExperiment({ experiment, onComplete, participantId, roomId }: ReactionTimeProps) {
+  const { t, language } = useLanguage();
   const [phase, setPhase] = useState<'instruction' | 'fixation' | 'stimulus' | 'debrief'>('instruction');
   const [trial, setTrial] = useState(0);
   const [trialConfigs, setTrialConfigs] = useState<TrialConfig[]>([]);
@@ -361,26 +364,36 @@ export function ReactionTimeExperiment(_props: ReactionTimeProps) {
       reaction_time_ms: Math.round(rt),
     };
 
-    const newResults = [...results, trialResult];
-    setResults(newResults);
+    setResults([...results, trialResult]);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     if (trial + 1 >= TOTAL_TRIALS) {
-      fetch('http://localhost:3001/api/results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newResults),
-      }).then(() => {
-        setPhase('debrief');
-      }).catch(() => {
-        setPhase('debrief');
+      const avgRt = Math.round(results.reduce((acc, r) => acc + r.reaction_time_ms, 0) / results.length);
+      onComplete({
+        experimentName: experiment.id,
+        participantId,
+        roomId,
+        language,
+        timestamp: new Date().toISOString(),
+        totalTrials: results.length,
+        responseTimeMs: avgRt,
+        accuracy: 100,
+        answer: avgRt.toString(),
+        correctAnswer: 'ms',
+        trialData: results.map((r, i) => ({
+          trialNumber: i + 1,
+          responseTimeMs: r.reaction_time_ms,
+          stimulus: r.chosen_side,
+          answer: r.chosen_side,
+          correctAnswer: r.doctor_side,
+        })),
       });
     } else {
       setPhase('fixation');
       setTrial(prev => prev + 1);
     }
-  }, [phase, leftPerson, rightPerson, doctorOnLeft, trial, trialConfigs, results]);
+    }, [phase, leftPerson, rightPerson, doctorOnLeft, trial, trialConfigs, results, onComplete, experiment, participantId, roomId, language]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
