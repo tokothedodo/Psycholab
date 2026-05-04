@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { type Experiment } from '../data/experiments';
 
 interface AutonomousVehicleExperimentProps {
@@ -51,13 +51,6 @@ const IMAGES_MAP: Record<string, string> = {
 };
 
 // --- Helper Functions ---
-const calculateMedian = (arr: number[]): number | null => {
-  if (arr.length === 0) return null;
-  const sorted = [...arr].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-};
-
 const shuffleArray = <T,>(array: T[]): T[] => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -67,12 +60,11 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArray;
 };
 
-const getRandomPerc = (min = 40, max = 95) => Math.floor(Math.random() * (max - min + 1)) + min;
+
 
 const generateTrials = () => {
   const groups: TrialGroup[] = ['white_male', 'white_female', 'black_male', 'black_female'];
   const practiceTrials: Trial[] = [];
-  const mainTrials: Trial[] = [];
 
   // 1. Practice Phase (5 trials, balanced position)
   for (let i = 0; i < 5; i++) {

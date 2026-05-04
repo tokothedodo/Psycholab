@@ -34,7 +34,7 @@ function App() {
           <Route path="/room/:code" element={<JoinExperimentPage />} />
           <Route path="/room-live/:code" element={<RoomLivePage />} />
           <Route path="/ai-assistant" element={<AIAssistantPage />} />
-          <Route path="/experiments/autonomous-vehicle" element={<AutonomousVehicleExperiment />} />
+          <Route path="/experiments/autonomous-vehicle" element={<AutonomousVehicleExperiment experiment={{} as any} onComplete={() => {}} participantId="test" roomId="test" />} />
         </Routes>
       </LanguageProvider>
     </BrowserRouter>
