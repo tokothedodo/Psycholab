@@ -229,13 +229,11 @@ export const AutonomousVehicleExperiment: React.FC<AutonomousVehicleExperimentPr
           const charY = canvas.height * 0.8;
 
           if (leftImg) {
-            if (leftImg) {
-              const targetH = canvas.height * 0.6;
-              const scale = targetH / leftImg.height;
-              const w = leftImg.width * scale;
-              const h = leftImg.height * scale;
-              ctx.drawImage(leftImg, leftX - w / 2, charY - h, w, h);
-            }
+            const targetH = canvas.height * 0.6;
+            const scale = targetH / leftImg.height;
+            const w = leftImg.width * scale;
+            const h = leftImg.height * scale;
+            ctx.drawImage(leftImg, leftX - w / 2, charY - h, w, h);
 
             if (rightImg) {
               const targetH = canvas.height * 0.6;
@@ -251,12 +249,13 @@ export const AutonomousVehicleExperiment: React.FC<AutonomousVehicleExperimentPr
             }
           }
         }
-        rafId = requestAnimationFrame(loop);
-      };
-
+      }
       rafId = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(rafId);
-    }, []);
+    };
+
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   // 4. Instant Input Handling
   useEffect(() => {
