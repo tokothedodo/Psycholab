@@ -97,21 +97,20 @@ The app will be available at `http://localhost:5173` and the API server at `http
 ## Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components (NavBar, QRCode, AIAssistant, etc.)
-├── pages/               # Route pages (Dashboard, RoomBuilder, Experiment, etc.)
-├── experiments/         # Individual experiment implementations
-│   ├── config/          # Experiment configuration
-│   ├── ExperimentWrapper.tsx
-│   ├── MullerLyerExperiment.tsx
-│   ├── ReactionTimeExperiment.tsx
-│   ├── StroopExperiment.tsx
-│   ├── DigitSpanExperiment.tsx
-│   └── UltimatumExperiment.tsx
-├── hooks/               # Custom React hooks (useExperiment, useResults, useTimer)
-├── context/             # React context (LanguageContext for i18n)
-├── data/                # Experiment registry and taxonomy
-├── i18n/                # Translations for supported languages
+ src/
+ ├── components/          # Reusable UI components (NavBar, QRCode, AIAssistant, etc.)
+ ├── pages/               # Route pages (Dashboard, RoomBuilder, Experiment, etc.)
+ ├── experiments/         # Individual experiment implementations
+ │   ├── config/          # Experiment configuration
+ │   ├── ExperimentWrapper.tsx
+ │   ├── MullerLyerExperiment.tsx
+ │   ├── StroopExperiment.tsx
+ │   ├── DigitSpanExperiment.tsx
+ │   └── UltimatumExperiment.tsx
+ ├── hooks/               # Custom React hooks (useExperiment, useResults, useTimer)
+ ├── context/             # React context (LanguageContext for i18n)
+ ├── data/                # Experiment registry and taxonomy
+ ├── i18n/                # Translations for supported languages
 ├── lib/                 # Utilities (Supabase client, random helpers)
 └── types/               # TypeScript type definitions
 

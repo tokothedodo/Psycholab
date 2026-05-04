@@ -28,10 +28,6 @@ export interface ExperimentResults {
   debrief?: string;
   age?: number;
   gender?: string;
-  white_male_avg?: number;
-  white_female_avg?: number;
-  black_male_avg?: number;
-  black_female_avg?: number;
 }
 
 interface ExperimentWrapperProps {

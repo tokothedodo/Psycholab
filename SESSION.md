@@ -2,17 +2,17 @@
 
 ## Project Overview
 
-Psycholab is a React + TypeScript + Vite psychology experiment platform. It hosts various cognitive experiments (Müller-Lyer, Stroop, Digit Span, Reaction Time, etc.) that participants can complete online.
+Psycholab is a React + TypeScript + Vite psychology experiment platform. It hosts various cognitive experiments (Müller-Lyer, Stroop, Digit Span, Ultimatum Game) that participants can complete online.
 
 ## Current State
 
-- **Existing ReactionTimeExperiment**: Currently a placeholder showing a blue circle stimulus (src/experiments/ReactionTimeExperiment.tsx:1-172)
 - **Framework**: React 19, TypeScript, Tailwind CSS, Vite
-- **No server**: No Express server exists yet - needs to be created
+- **Active Experiments**: Müller-Lyer Illusion, Stroop Task, Digit Span Task, Ultimatum Game
+- **Deleted**: Reaction Time experiment has been fully removed from the codebase
 
 ## Asset Location
 
-**Path**: `~/Downloads/assets/`
+**Path**: `public/` directory
 
 **Available Images**:
 | Filename | Type |
@@ -25,50 +25,12 @@ Psycholab is a React + TypeScript + Vite psychology experiment platform. It host
 | `white_man1.png`, `white_woman1.png` | White pedestrians |
 | `black_constructionwoman.png` | Additional black woman |
 
-**Pedestrian Naming Convention**: `{race}_{gender}{number}.png`
-- Race: `arab`, `black`, `indian`, `white`
-- Gender: `man`, `woman`
+## Scripts
 
-## Task: Build RT Psychology Experiment
-
-### Experimental Design
-
-**Trials**: 30 total
-
-**Trial Sequence**:
-1. Show `+` fixation cross in center for 500ms
-2. Clear cross, show road.jpg background
-3. Overlay: doctor.png + ONE random pedestrian PNG
-4. **Randomization**: Doctor on Left 50%, Right 50%
-
-**User Input**:
-- Press `A` to save the person on the Left
-- Press `L` to save the person on the Right
-- Press key via `keydown` event listener
-
-**Measurement**:
-- Use `performance.now()` to capture RT in milliseconds
-- Start timer when images appear
-- Stop timer on keypress
-
-### Technical Requirements
-
-- **Canvas**: Use HTML5 Canvas to render the scene
-- **Scaling**: Anchor pedestrians to bottom of road lines (so they don't float)
-- **Data Saving**: After trial 30, POST to Express server
-
-### Data Structure
-
-Each trial entry must include:
-```typescript
-{
-  trial_index: number;           // 1-30
-  pedestrian_race: string;      // "arab" | "black" | "indian" | "white"
-  pedestrian_gender: string;   // "man" | "woman"
-  position_of_doctor: string;   // "left" | "right"
-  chosen_side: string;          // "left" | "right"
-  reaction_time_ms: number;    // milliseconds
-}
+```bash
+npm run dev     # Start dev server
+npm run build   # Production build
+npm run lint    # Lint code
 ```
 
 The Express server should save to `experiment_results.json`.

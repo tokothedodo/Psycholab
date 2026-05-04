@@ -150,6 +150,17 @@ export const EXPERIMENT_SPECIFIC_VARIABLES: Record<string, Record<string, unknow
       unit: 'px',
     },
   },
+  'moral-machine-ingroup': {
+    maxResponseTime: {
+      id: 'maxResponseTime',
+      labelKey: 'config.moralMachine.maxResponseTime',
+      type: 'number',
+      default: 5000,
+      min: 1000,
+      max: 10000,
+      unit: 'ms',
+    },
+  },
 };
 
 export const getExperimentVariables = (experimentId: string) => {

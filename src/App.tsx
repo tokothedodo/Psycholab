@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { NavBar } from './components/NavBar';
+import AutonomousVehicleExperiment from './experiments/AutonomousVehicleExperiment';
 import {
   HomePage,
   LoginPage,
@@ -33,6 +34,7 @@ function App() {
           <Route path="/room/:code" element={<JoinExperimentPage />} />
           <Route path="/room-live/:code" element={<RoomLivePage />} />
           <Route path="/ai-assistant" element={<AIAssistantPage />} />
+          <Route path="/experiments/autonomous-vehicle" element={<AutonomousVehicleExperiment />} />
         </Routes>
       </LanguageProvider>
     </BrowserRouter>

@@ -29,7 +29,6 @@ const EXPERIMENT_GUIDANCE: Record<string, string> = {
   'ultimatum-game': 'Ultimatum Game: Economic decision-making experiment. Typically 8-12 trials with varying offer amounts. Measures fairness preferences. Citation: Güth et al. (1982).',
   'digit-span-task': 'Digit Span: Working memory test. Standard protocol includes 5-7 trials of increasing length. Maximum span is typically 7±2 items. Citation: Miller, G.A. (1956).',
   'ponzo-illusion': 'Ponzo Illusion: Depth perception test with converging lines. Usually 10-20 trials. Tests size constancy. Citation: Ponzo, M. (1912).',
-  'simple-and-choice-reaction-time-task': 'Reaction Time: Measures simple and choice reaction time. Typically 40+ trials per condition. Remove outliers >2SD. Citation: Donders (1868).',
   'iowa-gambling-task': 'Iowa Gambling Task: Tests reward/punishment learning. 100 trials recommended to see learning curve. Citation: Bechara et al. (1994).',
   'color-category-perception-paradigm': 'Color Perception: Tests color category boundaries across languages. This is culturally significant for the Caucasus region. Citation: Berlin & Kay (1969).',
 };

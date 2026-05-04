@@ -8,7 +8,7 @@ export const GUARDRAIL_MESSAGES: Record<string, Record<string, string>> = {
     'warnings.stroop.congruentRatio': 'Extreme ratios reduce reliability of interference score. 30-70% is recommended.',
     'warnings.stroop.colors': 'At least 2 colors must be selected for the Stroop test.',
     'warnings.mullerLyer.finAngle': 'Fin angles outside 30-60° deviate from standard published stimuli.',
-    'warnings.reactionTime.foreperiodRange': 'Foreperiod range below 300ms reduces temporal uncertainty — a key element of valid RT measurement.',
+    'warnings.foreperiodRange': 'Foreperiod range below 300ms reduces temporal uncertainty.',
     'warnings.outlierThreshold': 'Threshold outside 1.5-3 SD is unusual.',
   },
   ka: {
@@ -20,7 +20,7 @@ export const GUARDRAIL_MESSAGES: Record<string, Record<string, string>> = {
     'warnings.stroop.congruentRatio': '[KA] Extreme ratios reduce reliability.',
     'warnings.stroop.colors': '[KA] At least 2 colors must be selected.',
     'warnings.mullerLyer.finAngle': '[KA] Fin angles outside 30-60° deviate from standard.',
-    'warnings.reactionTime.foreperiodRange': '[KA] Foreperiod range below 300ms reduces temporal uncertainty.',
+    'warnings.foreperiodRange': '[KA] Foreperiod range below 300ms reduces temporal uncertainty.',
     'warnings.outlierThreshold': '[KA] Threshold outside 1.5-3 SD is unusual.',
   },
   hy: {
@@ -32,7 +32,7 @@ export const GUARDRAIL_MESSAGES: Record<string, Record<string, string>> = {
     'warnings.stroop.congruentRatio': '[HY] Extreme ratios reduce reliability.',
     'warnings.stroop.colors': '[HY] At least 2 colors must be selected.',
     'warnings.mullerLyer.finAngle': '[HY] Fin angles outside 30-60° deviate from standard.',
-    'warnings.reactionTime.foreperiodRange': '[HY] Foreperiod range below 300ms reduces temporal uncertainty.',
+    'warnings.foreperiodRange': '[HY] Foreperiod range below 300ms reduces temporal uncertainty.',
     'warnings.outlierThreshold': '[HY] Threshold outside 1.5-3 SD is unusual.',
   },
   az: {
@@ -44,7 +44,7 @@ export const GUARDRAIL_MESSAGES: Record<string, Record<string, string>> = {
     'warnings.stroop.congruentRatio': '[AZ] Extreme ratios reduce reliability.',
     'warnings.stroop.colors': '[AZ] At least 2 colors must be selected.',
     'warnings.mullerLyer.finAngle': '[AZ] Fin angles outside 30-60° deviate from standard.',
-    'warnings.reactionTime.foreperiodRange': '[AZ] Foreperiod range below 300ms reduces temporal uncertainty.',
+    'warnings.foreperiodRange': '[AZ] Foreperiod range below 300ms reduces temporal uncertainty.',
     'warnings.outlierThreshold': '[AZ] Threshold outside 1.5-3 SD is unusual.',
   },
 };

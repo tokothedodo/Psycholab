@@ -53,10 +53,10 @@ const BOUNDS: Record<string, WarningFunction> = {
     }
     return null;
   },
-  foreperiodMin: (value: number, config?: Record<string, unknown>) => {
+   foreperiodMin: (value: number, config?: Record<string, unknown>) => {
     const max = config?.foreperiodMax as number | undefined;
     if (max && (max - value) < 300) {
-      return { level: 'warning', messageKey: 'warnings.reactionTime.foreperiodRange', variableId: 'foreperiodMin' };
+      return { level: 'warning', messageKey: 'warnings.foreperiodRange', variableId: 'foreperiodMin' };
     }
     return null;
   },

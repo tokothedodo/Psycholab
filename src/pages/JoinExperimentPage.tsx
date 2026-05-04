@@ -13,7 +13,7 @@ import {
   StroopExperiment,
   UltimatumExperiment,
   DigitSpanExperiment,
-  ReactionTimeExperiment,
+  AutonomousVehicleExperiment,
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
@@ -26,7 +26,7 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   'stroop-color-word-interference-task': StroopExperiment,
   'ultimatum-game': UltimatumExperiment,
   'digit-span-task': DigitSpanExperiment,
-  'simple-and-choice-reaction-time-task': ReactionTimeExperiment,
+  'moral-machine-ingroup': AutonomousVehicleExperiment,
 };
 
 export function JoinExperimentPage() {
@@ -204,18 +204,21 @@ export function JoinExperimentPage() {
       </div>
     );
   }
+  const isMoralMachine = currentExperimentId === 'moral-machine-ingroup';
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="participant-header flex justify-between">
-        <span className="brand-mono text-xs opacity-50">PsychoLab Research Unit // {currentExperiment?.name}</span>
-        <div className="flex items-center gap-2">
-          {room!.status === 'draft' && <span className="text-[9px] font-black bg-yellow-400 px-2 py-0.5 rounded text-black mr-2">STAGING</span>}
-          <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{language}</span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white overflow-hidden">
+      {!isMoralMachine && (
+        <header className="participant-header flex justify-between">
+          <span className="brand-mono text-xs opacity-50">PsychoLab Research Unit // {currentExperiment?.name}</span>
+          <div className="flex items-center gap-2">
+            {room!.status === 'draft' && <span className="text-[9px] font-black bg-yellow-400 px-2 py-0.5 rounded text-black mr-2">STAGING</span>}
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{language}</span>
+          </div>
+        </header>
+      )}
 
-      <main className="experiment-layout">
+      <main className={isMoralMachine ? "w-full h-screen" : "experiment-layout"}>
         {isSubmitting && (
           <div className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-fade-in text-navy">
             <div className="w-16 h-16 border-4 border-navy border-t-transparent rounded-full animate-spin mb-8 shadow-2xl"></div>

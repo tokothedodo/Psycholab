@@ -7,22 +7,21 @@ import {
   StroopExperiment,
   MullerLyerExperiment,
   DigitSpanExperiment,
-  ReactionTimeExperiment,
   UltimatumExperiment,
+  AutonomousVehicleExperiment,
 } from '../experiments';
-import type { ExperimentResults } from '../experiments/ExperimentWrapper';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   experiment: Experiment;
-  onComplete: (results: ExperimentResults) => void;
+  onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
 }>> = {
   'stroop-color-word-interference-task': StroopExperiment,
   'muller-lyer-illusion': MullerLyerExperiment,
   'digit-span-task': DigitSpanExperiment,
-  'simple-and-choice-reaction-time-task': ReactionTimeExperiment,
   'ultimatum-game': UltimatumExperiment,
+  'moral-machine-ingroup': AutonomousVehicleExperiment,
 };
 
 export function ExperimentPage() {
