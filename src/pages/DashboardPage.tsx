@@ -104,13 +104,68 @@ export function DashboardPage() {
     }
   };
 
-  const handleExportCSV = async (room: Room) => {
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportRawCSV = async (room: Room) => {
     try {
       const results = await getResults(room.id);
+      let csvContent = '';
 
-      const csvContent = [
-        'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,age,gender,white_male_avg,white_female_avg,black_male_avg,black_female_avg,answer,correct_answer,timestamp',
-        ...results.map((r: Result) => {
+      if (room.experiment === 'iat-arab-georgian' || (results.length > 0 && (results[0] as any).trial_data)) {
+        // Long Format for IAT
+        const headers = [
+          'participant_id', 'timestamp', 'age', 'gender', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
+          'd_score', 'is_valid', 'is_high_error', 'too_fast_rate', 
+          'block', 'trial_idx', 'stimulus', 'category', 'latency', 'total_time', 'is_correct', 'error_count', 'too_fast', 'too_slow'
+        ];
+        
+        const rows: string[] = [];
+        results.forEach((r: any) => {
+          const rawData = r.trial_data as any;
+          const trials = Array.isArray(rawData) ? rawData : (rawData?.trials || []);
+          const summary = Array.isArray(rawData) ? {} : (rawData || {});
+          const m = r.participant_metadata || summary.participant_metadata || {};
+          
+          trials.forEach((t: any) => {
+            rows.push([
+              r.participant_id,
+              r.timestamp,
+              m.age || '',
+              m.gender || '',
+              m.explicit_pref || '',
+              m.warmth_georgian || '',
+              m.warmth_arab || '',
+              r.d_score || summary.d_score || '',
+              (r.is_valid !== undefined ? r.is_valid : summary.is_valid) ?? '',
+              (r.is_high_error !== undefined ? r.is_high_error : summary.is_high_error) ?? '',
+              r.too_fast_rate || summary.too_fast_rate || '',
+              t.block || '',
+              t.trial_idx || '',
+              `"${String(t.stimulus).replace(/"/g, '""')}"`,
+              `"${String(t.category).replace(/"/g, '""')}"`,
+              t.latency || '',
+              t.total_time || '',
+              t.is_correct !== undefined ? t.is_correct : '',
+              t.error_count !== undefined ? t.error_count : '',
+              t.too_fast !== undefined ? t.too_fast : '',
+              t.too_slow !== undefined ? t.too_slow : ''
+            ].join(','));
+          });
+        });
+        
+        csvContent = [headers.join(','), ...rows].join('\n');
+      } else {
+        // Default Flat Format
+        const headers = 'participant_id,language,experiment_name,response_time_ms,accuracy,total_trials,age,gender,white_male_avg,white_female_avg,black_male_avg,black_female_avg,answer,correct_answer,timestamp';
+        const rows = results.map((r: Result) => {
           const ageStr = r.age !== undefined ? r.age : '';
           const genderStr = r.gender || '';
           const wm = r.white_male_avg !== undefined ? r.white_male_avg : '';
@@ -121,18 +176,59 @@ export function DashboardPage() {
           const correctStr = String(r.correct_answer).replace(/"/g, '""');
           
           return `${r.participant_id},${r.language},${r.experiment_name},${r.response_time_ms},${r.accuracy || ''},${r.total_trials || ''},${ageStr},${genderStr},${wm},${wf},${bm},${bf},"${answerStr}","${correctStr}",${r.timestamp}`;
-        }),
-      ].join('\n');
+        });
+        csvContent = [headers, ...rows].join('\n');
+      }
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `results_${room.code}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadCSV(csvContent, `raw_trial_data_${room.code}.csv`);
     } catch (error) {
-      console.error('Error exporting CSV:', error);
+      console.error('Error exporting raw CSV:', error);
+    }
+  };
+
+  const handleExportRefinedCSV = async (room: Room) => {
+    try {
+      const results = await getResults(room.id);
+      if (results.length === 0) return;
+
+      const headers = [
+        'participant_id', 'timestamp', 'age', 'gender', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
+        'd_score', 'error_rate', 'fast_response_rate', 'is_valid'
+      ];
+      
+      const rows = results.map((r: any) => {
+        const rawData = r.trial_data as any;
+        const summary = Array.isArray(rawData) ? {} : (rawData || {});
+        const m = r.participant_metadata || summary.participant_metadata || {};
+        
+        // Calculate rates if not explicitly stored
+        const trials = Array.isArray(rawData) ? rawData : (rawData?.trials || []);
+        const total = trials.length;
+        const tooFast = trials.filter((t: any) => t.too_fast || (t.latency < 300)).length;
+        const errors = trials.filter((t: any) => !t.is_correct).length;
+        
+        const fastRate = r.too_fast_rate || (total > 0 ? (tooFast / total).toFixed(3) : 0);
+        const errorRate = total > 0 ? ((errors / total) * 100).toFixed(1) : 0;
+
+        return [
+          r.participant_id,
+          r.timestamp,
+          m.age || r.age || '',
+          m.gender || r.gender || '',
+          m.explicit_pref || '',
+          m.warmth_georgian || '',
+          m.warmth_arab || '',
+          r.d_score || summary.d_score || '',
+          `${errorRate}%`,
+          fastRate,
+          (r.is_valid !== undefined ? r.is_valid : summary.is_valid) ?? ''
+        ].join(',');
+      });
+      
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      downloadCSV(csvContent, `refined_scores_${room.code}.csv`);
+    } catch (error) {
+      console.error('Error exporting refined CSV:', error);
     }
   };
 
@@ -215,7 +311,8 @@ export function DashboardPage() {
                       stats={roomStats[room.id] || { participants: 0, results: 0 }}
                       onActivate={room.status === 'draft' ? () => handleActivateRoom(room.id) : undefined}
                       onClose={() => handleCloseRoom(room.id)}
-                      onExport={() => handleExportCSV(room)}
+                      onExportRefined={() => handleExportRefinedCSV(room)}
+                      onExportRaw={() => handleExportRawCSV(room)}
                       onShare={() => navigate(`/room-live/${room.code}`)}
                       t={t}
                     />
@@ -235,7 +332,8 @@ export function DashboardPage() {
                       stats={roomStats[room.id] || { participants: 0, results: 0 }}
                       onReopen={() => handleReopenRoom(room.id)}
                       onDelete={() => handleDeleteRoom(room.id)}
-                      onExport={() => handleExportCSV(room)}
+                      onExportRefined={() => handleExportRefinedCSV(room)}
+                      onExportRaw={() => handleExportRawCSV(room)}
                       t={t}
                     />
                   ))}
@@ -256,12 +354,14 @@ interface RoomCardProps {
   onClose?: () => void;
   onReopen?: () => void;
   onDelete?: () => void;
-  onExport: () => void;
+  onExportRefined: () => void;
+  onExportRaw: () => void;
   onShare?: () => void;
   t: (key: string) => string;
 }
 
-function RoomCard({ room, stats, onActivate, onClose, onReopen, onDelete, onExport, onShare, t }: RoomCardProps) {
+function RoomCard({ room, stats, onActivate, onClose, onReopen, onDelete, onExportRefined, onExportRaw, onShare, t }: RoomCardProps) {
+  const [showExportOptions, setShowExportOptions] = useState(false);
   const isDraft = room.status === 'draft';
   const isActive = room.status === 'active';
   const experimentData = getExperimentById(room.experiment);
@@ -311,12 +411,31 @@ function RoomCard({ room, stats, onActivate, onClose, onReopen, onDelete, onExpo
             {t('roomBuilder.shareLink')}
           </button>
         )}
-        <button
-          onClick={(e) => { e.stopPropagation(); onExport(); }}
-          className="btn-outline btn-csv"
-        >
-          <span>📉</span> {t('dashboard.exportCSV')}
-        </button>
+        
+        <div className="export-split-button">
+          <button
+            onClick={(e) => { e.stopPropagation(); onExportRefined(); }}
+            className="btn-primary btn-refined"
+          >
+            📊 {t('dashboard.exportRefined') || 'Download Refined Scores'}
+          </button>
+          <div className="dropdown-container">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowExportOptions(!showExportOptions); }}
+              className="btn-primary btn-dropdown-toggle"
+            >
+              ▼
+            </button>
+            {showExportOptions && (
+              <div className="export-dropdown-menu animate-fade-in">
+                <button onClick={(e) => { e.stopPropagation(); onExportRaw(); setShowExportOptions(false); }}>
+                  📄 {t('dashboard.exportRaw') || 'Download Raw Trial Data'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {isActive && onClose && (
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}

@@ -9,6 +9,7 @@ import {
   DigitSpanExperiment,
   UltimatumExperiment,
   AutonomousVehicleExperiment,
+  ArabGeorgianIAT,
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
@@ -22,6 +23,7 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   'digit-span-task': DigitSpanExperiment,
   'ultimatum-game': UltimatumExperiment,
   'moral-machine-ingroup': AutonomousVehicleExperiment,
+  'iat-arab-georgian': ArabGeorgianIAT,
 };
 
 export function ExperimentPage() {
@@ -86,7 +88,7 @@ export function ExperimentPage() {
         </button>
       </header>
 
-      <main className="experiment-layout pt-20">
+      <main className={(experiment.id === 'iat-arab-georgian' || experiment.id === 'moral-machine-ingroup') ? "w-full h-screen" : "experiment-layout pt-20"}>
         <ExperimentComponent
           experiment={experiment}
           onComplete={submitResults}

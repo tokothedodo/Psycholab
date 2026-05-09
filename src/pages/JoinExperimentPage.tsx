@@ -14,6 +14,7 @@ import {
   UltimatumExperiment,
   DigitSpanExperiment,
   AutonomousVehicleExperiment,
+  ArabGeorgianIAT,
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
@@ -27,6 +28,7 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   'ultimatum-game': UltimatumExperiment,
   'digit-span-task': DigitSpanExperiment,
   'moral-machine-ingroup': AutonomousVehicleExperiment,
+  'iat-arab-georgian': ArabGeorgianIAT,
 };
 
 export function JoinExperimentPage() {
@@ -57,6 +59,10 @@ export function JoinExperimentPage() {
         return;
       }
       setRoom(roomData);
+      if (roomData.experiment === 'iat-arab-georgian') {
+        setLanguage('ka');
+        setShowLanguagePicker(false);
+      }
     } catch {
       setError('System connection error. Please refresh.');
     } finally {
@@ -205,10 +211,11 @@ export function JoinExperimentPage() {
     );
   }
   const isMoralMachine = currentExperimentId === 'moral-machine-ingroup';
+  const isIAT = currentExperimentId === 'iat-arab-georgian';
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
-      {!isMoralMachine && (
+      {!isMoralMachine && !isIAT && (
         <header className="participant-header flex justify-between">
           <span className="brand-mono text-xs opacity-50">PsychoLab Research Unit // {currentExperiment?.name}</span>
           <div className="flex items-center gap-2">
@@ -218,7 +225,7 @@ export function JoinExperimentPage() {
         </header>
       )}
 
-      <main className={isMoralMachine ? "w-full h-screen" : "experiment-layout"}>
+      <main className={(isMoralMachine || isIAT) ? "w-full h-screen" : "experiment-layout"}>
         {isSubmitting && (
           <div className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-fade-in text-navy">
             <div className="w-16 h-16 border-4 border-navy border-t-transparent rounded-full animate-spin mb-8 shadow-2xl"></div>

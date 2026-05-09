@@ -10,26 +10,37 @@ export function useResults() {
         setIsSubmitting(true);
         setError(null);
 
-        const payload: any = {
+    const payload: any = {
       room_id: results.roomId,
       participant_id: results.participantId,
-      experiment_name: (results as any).experiment_name || results.experimentName,
-      response_time_ms: (results as any).overall_median_rt || results.responseTimeMs,
+      experiment_name: (results as any).experimentId || (results as any).experiment_name || results.experimentName,
+      response_time_ms: (results as any).overall_median_rt || results.responseTimeMs || 0,
       answer: String(results.answer || "completed"),
       correct_answer: String(results.correctAnswer || "completed"),
       language: results.language,
       accuracy: results.accuracy || (results as any).accuracy_percent,
       total_trials: results.totalTrials || (results as any).total_trials,
       timestamp: results.timestamp || new Date().toISOString(),
+      // Pack extra fields into trial_data to avoid column errors
+      trial_data: {
+        trials: (results as any).trial_data,
+        d_score: (results as any).d_score,
+        is_valid: (results as any).is_valid,
+        is_high_error: (results as any).is_high_error,
+        too_fast_rate: (results as any).too_fast_rate,
+        participant_metadata: (results as any).participant_metadata,
+      }
     };
 
     // Add optional fields if present (mapping scientific keys to DB columns)
     const res = results as any;
     if (res.subject_age !== undefined) payload.age = res.subject_age;
     else if (results.age !== undefined) payload.age = results.age;
+    else if (res.participant_metadata?.age !== undefined) payload.age = res.participant_metadata.age;
 
     if (res.subject_gender !== undefined) payload.gender = res.subject_gender;
     else if (results.gender !== undefined) payload.gender = results.gender;
+    else if (res.participant_metadata?.gender !== undefined) payload.gender = res.participant_metadata.gender;
 
     // Mapping Median values to the AVG columns in DB for consistency
     if (res.white_male_median !== undefined) payload.white_male_avg = res.white_male_median;

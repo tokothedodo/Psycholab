@@ -82,6 +82,19 @@ export const EXPERIMENTS: Experiment[] = [
     trials: 30,
     debriefKey: 'exp.moralMachine.debrief',
   },
+  {
+    id: 'iat-arab-georgian',
+    name: 'Arab-Georgian Implicit Association Test',
+    nameKey: 'exp.iatArabGeorgian.name',
+    description: 'Measure unconscious associations between Arab and Georgian names with positive and negative attributes.',
+    descriptionKey: 'exp.iatArabGeorgian.desc',
+    category: 'social-cognition',
+    citation: 'Greenwald et al., 1998',
+    year: 1998,
+    duration: 10,
+    trials: 180,
+    debriefKey: 'exp.iatArabGeorgian.debrief',
+  },
 ];
 
 export const CATEGORIES: { id: ExperimentCategory; nameKey: string; color: string }[] =
