@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getUser, createRoom, ensureUserRecord } from '../lib/supabase';
-import { ExperimentConfigPanel, getDefaultConfig } from '../experiments/config';
+import { getDefaultConfig } from '../experiments/config';
 import { EXPERIMENTS_BY_CATEGORY, getExperimentById } from '../data/experiments';
 import './RoomBuilderPage.css';
 

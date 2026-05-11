@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { type Experiment } from '../data/experiments';
 import { ExperimentWrapper } from './ExperimentWrapper';
-import { useLanguage } from '../context/LanguageContext';
 
 interface ArabGeorgianIATProps {
   experiment: Experiment;
@@ -61,7 +60,6 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
   participantId,
   roomId,
 }) => {
-  const { t } = useLanguage();
   const [block, setBlock] = useState(0); // 0 is initial instruction
   const [trialIndex, setTrialIndex] = useState(0);
   const [trials, setTrials] = useState<Trial[]>([]);
