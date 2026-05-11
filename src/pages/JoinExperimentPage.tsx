@@ -214,7 +214,7 @@ export function JoinExperimentPage() {
   const isIAT = currentExperimentId === 'iat-arab-georgian';
 
   return (
-    <div className="min-h-screen bg-white overflow-hidden">
+    <div className="min-h-screen bg-white">
       {!isMoralMachine && !isIAT && (
         <header className="participant-header flex justify-between">
           <span className="brand-mono text-xs opacity-50">PsychoLab Research Unit // {currentExperiment?.name}</span>
@@ -225,7 +225,7 @@ export function JoinExperimentPage() {
         </header>
       )}
 
-      <main className={(isMoralMachine || isIAT) ? "w-full h-screen" : "experiment-layout"}>
+      <main className={(isMoralMachine || isIAT) ? "w-full min-h-screen" : "experiment-layout"}>
         {isSubmitting && (
           <div className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-fade-in text-navy">
             <div className="w-16 h-16 border-4 border-navy border-t-transparent rounded-full animate-spin mb-8 shadow-2xl"></div>

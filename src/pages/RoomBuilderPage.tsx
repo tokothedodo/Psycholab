@@ -127,24 +127,7 @@ export function RoomBuilderPage() {
         ))}
       </main>
 
-      <aside className="builder-config">
-        {selectedExpData ? (
-          <div className="flex flex-col h-full">
-            <ExperimentConfigPanel
-              experimentId={selectedExpData.id}
-              experimentName={selectedExpData.nameKey}
-              config={experimentConfig}
-              onConfigChange={setExperimentConfig}
-            />
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-text-muted">
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
-            <h3>{t('roomBuilder.metadataViewer')}</h3>
-            <p>{t('roomBuilder.selectExperiment')}</p>
-          </div>
-        )}
-      </aside>
+      {/* Config panel removed as per user request */}
 
       <footer className="builder-footer">
         <div className="footer-experiment-info flex-1">

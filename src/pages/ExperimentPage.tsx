@@ -88,7 +88,7 @@ export function ExperimentPage() {
         </button>
       </header>
 
-      <main className={(experiment.id === 'iat-arab-georgian' || experiment.id === 'moral-machine-ingroup') ? "w-full h-screen" : "experiment-layout pt-20"}>
+      <main className={(experiment.id === 'iat-arab-georgian' || experiment.id === 'moral-machine-ingroup') ? "w-full min-h-screen" : "experiment-layout pt-20"}>
         <ExperimentComponent
           experiment={experiment}
           onComplete={submitResults}
