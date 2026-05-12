@@ -346,41 +346,78 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
     // Filter valid trials for D-score calculation (exclude too_slow)
     const validData = data.filter(r => !r.too_slow);
 
-    // D-score Calculation (Blocks 3, 4, 6, 7)
+    // 1. Calculate D1 using all 4 critical blocks (3, 4, 6, 7)
     const criticalBlocks = [3, 4, 6, 7];
-    const criticalTrials = validData.filter(r => criticalBlocks.includes(r.block));
+    const critData = validData.filter(r => criticalBlocks.includes(r.block));
+    
+    const congruentCrit = critData.filter(r => r.congruency === 'Congruent');
+    const incongruentCrit = critData.filter(r => r.congruency === 'Incongruent');
+    
+    const meanCongAll = congruentCrit.length > 0 ? congruentCrit.reduce((a, r) => a + r.total_time, 0) / congruentCrit.length : 0;
+    const meanIncongAll = incongruentCrit.length > 0 ? incongruentCrit.reduce((a, r) => a + r.total_time, 0) / incongruentCrit.length : 0;
+    
+    const sdAll = (() => {
+      const times = critData.map(r => r.total_time);
+      if (times.length === 0) return 0;
+      const m = times.reduce((a, b) => a + b, 0) / times.length;
+      return Math.sqrt(times.reduce((a, b) => a + Math.pow(b - m, 2), 0) / times.length);
+    })();
+    
+    const d1 = sdAll !== 0 ? (meanIncongAll - meanCongAll) / sdAll : 0;
 
-    let dScoreValue = 0;
-    if (criticalTrials.length > 0) {
-      const congruentTrials = criticalTrials.filter(r => r.congruency === 'Congruent');
-      const incongruentTrials = criticalTrials.filter(r => r.congruency === 'Incongruent');
+    // 2. Calculate D2 using only test blocks (4, 7)
+    const testBlocks = [4, 7];
+    const testData = validData.filter(r => testBlocks.includes(r.block));
+    
+    const congruentTest = testData.filter(r => r.congruency === 'Congruent');
+    const incongruentTest = testData.filter(r => r.congruency === 'Incongruent');
+    
+    const meanCongTest = congruentTest.length > 0 ? congruentTest.reduce((a, r) => a + r.total_time, 0) / congruentTest.length : 0;
+    const meanIncongTest = incongruentTest.length > 0 ? incongruentTest.reduce((a, r) => a + r.total_time, 0) / incongruentTest.length : 0;
+    
+    const sdTest = (() => {
+      const times = testData.map(r => r.total_time);
+      if (times.length === 0) return 0;
+      const m = times.reduce((a, b) => a + b, 0) / times.length;
+      return Math.sqrt(times.reduce((a, b) => a + Math.pow(b - m, 2), 0) / times.length);
+    })();
+    
+    const d2 = sdTest !== 0 ? (meanIncongTest - meanCongTest) / sdTest : 0;
 
-      const meanCong = congruentTrials.length > 0
-        ? congruentTrials.reduce((acc, r) => acc + r.total_time, 0) / congruentTrials.length
-        : 0;
-      const meanIncong = incongruentTrials.length > 0
-        ? incongruentTrials.reduce((acc, r) => acc + r.total_time, 0) / incongruentTrials.length
-        : 0;
+    // 3. Final D Score
+    const finalDScore = (d1 + d2) / 2;
+    setDScore(Number(finalDScore.toFixed(3)));
 
-      // Pooled Standard Deviation
-      const allTimes = criticalTrials.map(r => r.total_time);
-      const n = allTimes.length;
-      const meanAll = allTimes.reduce((acc, val) => acc + val, 0) / n;
-      const variance = allTimes.reduce((acc, val) => acc + Math.pow(val - meanAll, 2), 0) / n;
-      const pooledSD = Math.sqrt(variance);
+    // 4. Specific Reaction Time Averages (Blocks 3, 4, 6, 7)
+    // Identify block-to-pairing mapping based on condition
+    const geoPosBlocks = condition === 'Group_A' ? [6, 7] : [3, 4];
+    const geoNegBlocks = condition === 'Group_A' ? [3, 4] : [6, 7];
+    const arabPosBlocks = condition === 'Group_A' ? [3, 4] : [6, 7];
+    const arabNegBlocks = condition === 'Group_A' ? [6, 7] : [3, 4];
 
-      dScoreValue = pooledSD !== 0 ? (meanIncong - meanCong) / pooledSD : 0;
-    }
+    const getPairingMean = (blocks: number[], targetCat: string, attrCat: string) => {
+      const trials = critData.filter(r => blocks.includes(r.block) && (r.category === targetCat || r.category === attrCat));
+      return trials.length > 0 ? trials.reduce((a, r) => a + r.total_time, 0) / trials.length : 0;
+    };
 
-    setDScore(Number(dScoreValue.toFixed(3)));
+    const mean_rt_geo_pos = getPairingMean(geoPosBlocks, 'Georgian Names', 'Positive');
+    const mean_rt_geo_neg = getPairingMean(geoNegBlocks, 'Georgian Names', 'Negative');
+    const mean_rt_arab_pos = getPairingMean(arabPosBlocks, 'Arab Names', 'Positive');
+    const mean_rt_arab_neg = getPairingMean(arabNegBlocks, 'Arab Names', 'Negative');
 
     const finalResults = {
       experimentId: experiment.id,
       participantId,
       roomId,
-      condition, // Group_A or Group_B
+      condition,
       timestamp: new Date().toISOString(),
-      d_score: Number(dScoreValue.toFixed(3)),
+      d_score: Number(finalDScore.toFixed(3)),
+      d1: Number(d1.toFixed(3)),
+      d2: Number(d2.toFixed(3)),
+      mean_rt_geo_positive: Math.round(mean_rt_geo_pos),
+      mean_rt_geo_negative: Math.round(mean_rt_geo_neg),
+      mean_rt_arab_positive: Math.round(mean_rt_arab_pos),
+      mean_rt_arab_negative: Math.round(mean_rt_arab_neg),
       is_valid: !isInvalid,
       is_high_error: isHighError,
       too_fast_rate: Number((tooFastCount / data.length).toFixed(3)),
