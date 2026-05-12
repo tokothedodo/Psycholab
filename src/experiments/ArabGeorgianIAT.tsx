@@ -460,8 +460,6 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
           <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">ინფორმირებული თანხმობა</h2>
 
           <div className="space-y-4 text-gray-700 mb-8 text-sm leading-relaxed overflow-y-auto max-h-[45vh] pr-4 border-b pb-4">
-            <p><strong>პროექტის დასახელება:</strong> სოციალური დამოკიდებულებების კვლევა.</p>
-
             <p><strong>კვლევის მიზანი:</strong> წინამდებარე ექსპერიმენტი მიზნად ისახავს სხვადასხვა სოციალურ ჯგუფებს შორის ასოციაციების სიჩქარის შესწავლას. ტესტი ეფუძნება იმპლიციტური ასოციაციის ტესტის (IAT) მეთოდოლოგიას.</p>
 
             <p><strong>პროცედურა:</strong> თქვენ მოგეთხოვებათ მოახდინოთ სიტყვებისა და სახელების კატეგორიზაცია "E" და "I" კლავიშების გამოყენებით. პროცესი დაახლოებით 5-10 წუთს გასტანს.</p>
