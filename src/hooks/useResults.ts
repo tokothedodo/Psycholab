@@ -21,14 +21,11 @@ export function useResults() {
       accuracy: results.accuracy || (results as any).accuracy_percent,
       total_trials: results.totalTrials || (results as any).total_trials,
       timestamp: results.timestamp || new Date().toISOString(),
-      // Pack extra fields into trial_data to avoid column errors
+      // Pack ALL experiment results into trial_data to ensure custom metrics (d1, d2, means) are preserved
       trial_data: {
-        trials: (results as any).trial_data,
-        d_score: (results as any).d_score,
-        is_valid: (results as any).is_valid,
-        is_high_error: (results as any).is_high_error,
-        too_fast_rate: (results as any).too_fast_rate,
-        participant_metadata: (results as any).participant_metadata,
+        ...(results as any),
+        // Ensure trials exists for raw data exports
+        trials: (results as any).trial_data || (results as any).trialData || []
       }
     };
 

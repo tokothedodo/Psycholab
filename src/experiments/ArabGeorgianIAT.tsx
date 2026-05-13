@@ -41,7 +41,7 @@ interface TrialResult {
   congruency: 'Congruent' | 'Incongruent' | 'Practice';
 }
 
-const ARAB_NAMES = ['ამირ', 'ასან', 'მუჰამედ', 'ზაიდ', 'ესრა', 'აიშა', 'ფატიმა', 'ალია'];
+const ARAB_NAMES = ['აჰმედ', 'ჰასან', 'მუჰამედ', 'ზაიდ', 'ესრა', 'აიშა', 'ფატიმა', 'ალია'];
 const GEORGIAN_NAMES = ['ლუკა', 'ნიკა', 'ვაჟა', 'ლაშა', 'ნინო', 'მარი', 'ნანა', 'დალი'];
 const POSITIVE_WORDS = ['სიხარული', 'ბედნიერება', 'მშვიდობა', 'იმედი', 'სიყვარული', 'მოგება', 'სიკეთე', 'წარმატება'];
 const NEGATIVE_WORDS = ['ბოროტება', 'მარცხი', 'სიცხვილი', 'შიში', 'სიძულვილი', 'ტკივილი', 'საშინელება', 'უბედურება'];
@@ -343,45 +343,45 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
     const totalErrors = data.filter(r => !r.is_correct).length;
     const isHighError = (totalErrors / data.length) > 0.25;
 
-    // Filter valid trials for D-score calculation (exclude too_slow)
-    const validData = data.filter(r => !r.too_slow);
+    // Filter valid trials for D-score calculation (exclude too_slow > 10000ms)
+    const validData = data.filter(r => !r.too_slow && r.total_time <= 10000);
 
     // 1. Calculate D1 using all 4 critical blocks (3, 4, 6, 7)
     const criticalBlocks = [3, 4, 6, 7];
     const critData = validData.filter(r => criticalBlocks.includes(r.block));
-    
+
     const congruentCrit = critData.filter(r => r.congruency === 'Congruent');
     const incongruentCrit = critData.filter(r => r.congruency === 'Incongruent');
-    
+
     const meanCongAll = congruentCrit.length > 0 ? congruentCrit.reduce((a, r) => a + r.total_time, 0) / congruentCrit.length : 0;
     const meanIncongAll = incongruentCrit.length > 0 ? incongruentCrit.reduce((a, r) => a + r.total_time, 0) / incongruentCrit.length : 0;
-    
+
     const sdAll = (() => {
       const times = critData.map(r => r.total_time);
       if (times.length === 0) return 0;
       const m = times.reduce((a, b) => a + b, 0) / times.length;
       return Math.sqrt(times.reduce((a, b) => a + Math.pow(b - m, 2), 0) / times.length);
     })();
-    
+
     const d1 = sdAll !== 0 ? (meanIncongAll - meanCongAll) / sdAll : 0;
 
     // 2. Calculate D2 using only test blocks (4, 7)
     const testBlocks = [4, 7];
     const testData = validData.filter(r => testBlocks.includes(r.block));
-    
+
     const congruentTest = testData.filter(r => r.congruency === 'Congruent');
     const incongruentTest = testData.filter(r => r.congruency === 'Incongruent');
-    
+
     const meanCongTest = congruentTest.length > 0 ? congruentTest.reduce((a, r) => a + r.total_time, 0) / congruentTest.length : 0;
     const meanIncongTest = incongruentTest.length > 0 ? incongruentTest.reduce((a, r) => a + r.total_time, 0) / incongruentTest.length : 0;
-    
+
     const sdTest = (() => {
       const times = testData.map(r => r.total_time);
       if (times.length === 0) return 0;
       const m = times.reduce((a, b) => a + b, 0) / times.length;
       return Math.sqrt(times.reduce((a, b) => a + Math.pow(b - m, 2), 0) / times.length);
     })();
-    
+
     const d2 = sdTest !== 0 ? (meanIncongTest - meanCongTest) / sdTest : 0;
 
     // 3. Final D Score
@@ -418,7 +418,7 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
       mean_rt_geo_negative: Math.round(mean_rt_geo_neg),
       mean_rt_arab_positive: Math.round(mean_rt_arab_pos),
       mean_rt_arab_negative: Math.round(mean_rt_arab_neg),
-      is_valid: !isInvalid,
+      is_valid: !isInvalid && !isHighError,
       is_high_error: isHighError,
       too_fast_rate: Number((tooFastCount / data.length).toFixed(3)),
       participant_metadata: metadata,
@@ -597,10 +597,10 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
             {/* Feeling Thermometers */}
             <div className="space-y-8">
               <div>
-                <label className="block text-lg font-bold mb-4">რამდენად თბილად ან ცივად განეწყობით ქართველების მიმართ?</label>
+                <label className="block text-lg font-bold mb-4">რამდენად დადებითად ან უარყოფითად განეწყობით ქართველების მიმართ?</label>
                 <div className="flex justify-between text-xs text-gray-400 mb-2 font-sans">
-                  <span>0 (ცივი)</span>
-                  <span>10 (თბილი)</span>
+                  <span>0 (უარყოფითად)</span>
+                  <span>10 (დადებითად)</span>
                 </div>
                 <input
                   type="range" min="0" max="10" step="1"
@@ -614,10 +614,10 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
               </div>
 
               <div>
-                <label className="block text-lg font-bold mb-4">რამდენად თბილად ან ცივად განეწყობით არაბების მიმართ?</label>
+                <label className="block text-lg font-bold mb-4">რამდენად დადებითად ან უარყოფითად განეწყობით არაბების მიმართ?</label>
                 <div className="flex justify-between text-xs text-gray-400 mb-2 font-sans">
-                  <span>0 (ცივი)</span>
-                  <span>10 (თბილი)</span>
+                  <span>0 (უარყოფითად)</span>
+                  <span>10 (დადებითად)</span>
                 </div>
                 <input
                   type="range" min="0" max="10" step="1"
