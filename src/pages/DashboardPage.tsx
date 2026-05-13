@@ -123,7 +123,7 @@ export function DashboardPage() {
         // Long Format for IAT
         const headers = [
           'participant_id', 'timestamp', 'age', 'gender', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
-          'd_score', 'd1', 'd2', 'is_valid', 'is_high_error', 'too_fast_rate', 
+          'd_score', 'd_practice', 'd_test', 'is_valid', 'is_high_error', 'too_fast_rate', 
           'block', 'trial_idx', 'stimulus', 'category', 'latency', 'total_time', 'is_correct', 'error_count', 'too_fast', 'too_slow'
         ];
         
@@ -144,8 +144,8 @@ export function DashboardPage() {
               m.warmth_georgian || '',
               m.warmth_arab || '',
               r.d_score || summary.d_score || '',
-              r.d1 || summary.d1 || '',
-              r.d2 || summary.d2 || '',
+              r.d_practice || summary.d_practice || r.d1 || summary.d1 || '',
+              r.d_test || summary.d_test || r.d2 || summary.d2 || '',
               (r.is_valid !== undefined ? r.is_valid : summary.is_valid) ?? '',
               (r.is_high_error !== undefined ? r.is_high_error : summary.is_high_error) ?? '',
               r.too_fast_rate || summary.too_fast_rate || '',
@@ -195,7 +195,7 @@ export function DashboardPage() {
 
       const headers = [
         'participant_id', 'timestamp', 'age', 'gender', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
-        'd_score', 'd1', 'd2', 'rt_geo_pos', 'rt_geo_neg', 'rt_arab_pos', 'rt_arab_neg', 'error_rate', 'fast_response_rate', 'is_valid'
+        'd_score', 'd_practice', 'd_test', 'rt_geo_pos', 'rt_geo_neg', 'rt_arab_pos', 'rt_arab_neg', 'error_rate', 'fast_response_rate', 'is_valid'
       ];
       
       const rows = results.map((r: any) => {
@@ -221,8 +221,8 @@ export function DashboardPage() {
           m.warmth_georgian || '',
           m.warmth_arab || '',
           r.d_score || summary.d_score || '',
-          r.d1 || summary.d1 || '',
-          r.d2 || summary.d2 || '',
+          r.d_practice || summary.d_practice || r.d1 || summary.d1 || '',
+          r.d_test || summary.d_test || r.d2 || summary.d2 || '',
           summary.mean_rt_geo_positive || '',
           summary.mean_rt_geo_negative || '',
           summary.mean_rt_arab_positive || '',
