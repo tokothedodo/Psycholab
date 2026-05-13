@@ -600,34 +600,28 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
                 <label className="block text-lg font-bold mb-4">რამდენად დადებითად ან უარყოფითად განეწყობით ქართველების მიმართ?</label>
                 <div className="flex justify-between text-xs text-gray-400 mb-2 font-sans">
                   <span>0 (უარყოფითად)</span>
-                  <span>10 (დადებითად)</span>
+                  <span>100 (დადებითად)</span>
                 </div>
                 <input
-                  type="range" min="0" max="10" step="1"
+                  type="range" min="0" max="100" step="1"
                   className={`w-full accent-indigo-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ${metadata.warmth_georgian === null ? 'opacity-30' : ''}`}
-                  value={metadata.warmth_georgian ?? 5}
+                  value={metadata.warmth_georgian ?? 50}
                   onChange={(e) => setMetadata(prev => ({ ...prev, warmth_georgian: parseInt(e.target.value) }))}
                 />
-                <div className="text-center mt-2 font-bold text-indigo-600 text-xl">
-                  {metadata.warmth_georgian === null ? '---' : metadata.warmth_georgian}
-                </div>
               </div>
 
               <div>
                 <label className="block text-lg font-bold mb-4">რამდენად დადებითად ან უარყოფითად განეწყობით არაბების მიმართ?</label>
                 <div className="flex justify-between text-xs text-gray-400 mb-2 font-sans">
                   <span>0 (უარყოფითად)</span>
-                  <span>10 (დადებითად)</span>
+                  <span>100 (დადებითად)</span>
                 </div>
                 <input
-                  type="range" min="0" max="10" step="1"
+                  type="range" min="0" max="100" step="1"
                   className={`w-full accent-indigo-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ${metadata.warmth_arab === null ? 'opacity-30' : ''}`}
-                  value={metadata.warmth_arab ?? 5}
+                  value={metadata.warmth_arab ?? 50}
                   onChange={(e) => setMetadata(prev => ({ ...prev, warmth_arab: parseInt(e.target.value) }))}
                 />
-                <div className="text-center mt-2 font-bold text-indigo-600 text-xl">
-                  {metadata.warmth_arab === null ? '---' : metadata.warmth_arab}
-                </div>
               </div>
             </div>
           </div>
