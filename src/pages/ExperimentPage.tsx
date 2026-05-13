@@ -17,6 +17,7 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
+  isSubmitting?: boolean;
 }>> = {
   'stroop-color-word-interference-task': StroopExperiment,
   'muller-lyer-illusion': MullerLyerExperiment,
@@ -33,7 +34,7 @@ export function ExperimentPage() {
   const [loading, setLoading] = useState(true);
   const [participantId] = useState(() => `PREVIEW_${Math.random().toString(36).substr(2, 5)}`);
   const [roomId] = useState(() => `DEV_${Math.random().toString(36).substr(2, 4)}`);
-  const { submitResults } = useResults();
+  const { submitResults, isSubmitting } = useResults();
 
   const initializeExperiment = () => {
     if (id) {
@@ -94,6 +95,7 @@ export function ExperimentPage() {
           onComplete={submitResults}
           participantId={participantId}
           roomId={roomId}
+          isSubmitting={isSubmitting}
         />
       </main>
     </div>

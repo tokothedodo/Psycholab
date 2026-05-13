@@ -122,7 +122,7 @@ export function DashboardPage() {
       if (room.experiment === 'iat-arab-georgian' || (results.length > 0 && (results[0] as any).trial_data)) {
         // Long Format for IAT
         const headers = [
-          'participant_id', 'timestamp', 'age', 'gender', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
+          'participant_id', 'timestamp', 'age', 'gender', 'condition', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
           'd_score', 'd1', 'd2', 'is_valid', 'is_high_error', 'too_fast_rate', 
           'block', 'trial_idx', 'stimulus', 'category', 'latency', 'total_time', 'is_correct', 'error_count', 'too_fast', 'too_slow'
         ];
@@ -140,6 +140,7 @@ export function DashboardPage() {
               r.timestamp,
               m.age || '',
               m.gender || '',
+              r.condition || summary.condition || '',
               m.explicit_pref || '',
               m.warmth_georgian || '',
               m.warmth_arab || '',
@@ -194,7 +195,7 @@ export function DashboardPage() {
       if (results.length === 0) return;
 
       const headers = [
-        'participant_id', 'timestamp', 'age', 'gender', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
+        'participant_id', 'timestamp', 'age', 'gender', 'condition', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
         'd_score', 'd1', 'd2', 'rt_geo_pos', 'rt_geo_neg', 'rt_arab_pos', 'rt_arab_neg', 'error_rate', 'fast_response_rate', 'is_valid'
       ];
       
@@ -217,6 +218,7 @@ export function DashboardPage() {
           r.timestamp,
           m.age || r.age || '',
           m.gender || r.gender || '',
+          r.condition || summary.condition || '',
           m.explicit_pref || '',
           m.warmth_georgian || '',
           m.warmth_arab || '',

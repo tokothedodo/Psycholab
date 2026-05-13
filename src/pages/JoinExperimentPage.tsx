@@ -19,9 +19,10 @@ import {
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   experiment: Experiment;
-  onComplete: (results: ExperimentResults) => void;
+  onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
+  isSubmitting?: boolean;
 }>> = {
   'muller-lyer-illusion': MullerLyerExperiment,
   'stroop-color-word-interference-task': StroopExperiment,
@@ -176,7 +177,10 @@ export function JoinExperimentPage() {
     );
   }
 
-  if (completed) {
+  const currentExperimentId = room!.experiment;
+  const isIAT = currentExperimentId === 'iat-arab-georgian';
+
+  if (completed && !isIAT) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-8">
         <div className="completion-card text-center max-w-xl animate-fade-in">
@@ -196,7 +200,6 @@ export function JoinExperimentPage() {
     );
   }
 
-  const currentExperimentId = room!.experiment;
   const currentExperiment = getExperimentById(currentExperimentId);
   const ExperimentComponent = currentExperimentId && EXPERIMENT_COMPONENTS[currentExperimentId];
 
@@ -211,7 +214,6 @@ export function JoinExperimentPage() {
     );
   }
   const isMoralMachine = currentExperimentId === 'moral-machine-ingroup';
-  const isIAT = currentExperimentId === 'iat-arab-georgian';
 
   return (
     <div className="min-h-screen bg-white">
@@ -226,7 +228,7 @@ export function JoinExperimentPage() {
       )}
 
       <main className={(isMoralMachine || isIAT) ? "w-full min-h-screen" : "experiment-layout"}>
-        {isSubmitting && (
+        {isSubmitting && !isIAT && (
           <div className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-fade-in text-navy">
             <div className="w-16 h-16 border-4 border-navy border-t-transparent rounded-full animate-spin mb-8 shadow-2xl"></div>
             <h2 className="text-2xl font-black mb-2 tracking-tighter">Synchronizing Data</h2>
@@ -238,6 +240,7 @@ export function JoinExperimentPage() {
           onComplete={handleExperimentComplete}
           participantId={participantId}
           roomId={room!.id}
+          {...(isIAT ? { isSubmitting } : {})}
         />
       </main>
     </div>

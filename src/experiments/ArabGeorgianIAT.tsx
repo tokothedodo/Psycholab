@@ -7,6 +7,7 @@ interface ArabGeorgianIATProps {
   onComplete: (results: any) => void;
   participantId: string;
   roomId: string;
+  isSubmitting?: boolean;
 }
 
 interface ParticipantMetadata {
@@ -59,6 +60,7 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
   onComplete,
   participantId,
   roomId,
+  isSubmitting = false,
 }) => {
   const [block, setBlock] = useState(0); // 0 is initial instruction
   const [trialIndex, setTrialIndex] = useState(0);
@@ -478,17 +480,37 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
             </p>
           </div>
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2 font-sans">Status</p>
-            <p className={`text-xl font-bold ${isInvalid ? 'text-red-500' : 'text-green-600'}`}>
-              {isInvalid ? 'Invalid Session' : 'Valid Session'}
-            </p>
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2 font-sans">Data Status</p>
+            <div className="flex flex-col items-center justify-center">
+              {isSubmitting ? (
+                <>
+                  <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <p className="text-sm font-bold text-indigo-600 animate-pulse">გადაგზავნა...</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-green-500 text-2xl">✓</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${isInvalid ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                      {isInvalid ? 'Invalid' : 'Valid'}
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-green-600">შენახულია</p>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="flex gap-4">
           <button
-            onClick={() => window.location.reload()}
-            className="bg-indigo-600 text-white px-12 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg"
+            onClick={() => window.location.href = '/'}
+            disabled={isSubmitting}
+            className={`px-12 py-4 rounded-xl font-bold transition-all shadow-lg ${
+              isSubmitting 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
           >
             დასრულება
           </button>
