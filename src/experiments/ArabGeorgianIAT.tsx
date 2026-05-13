@@ -185,7 +185,6 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
 
     switch (blockNum) {
       case 1: // Target Practice
-      case 5: // Reversed Target Practice
         blockTrials = getBalancedDeck(
           mapping.leftTargetCat === 'Arab Names' ? ARAB_NAMES : GEORGIAN_NAMES,
           mapping.leftTargetCat,
@@ -194,6 +193,17 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
           mapping.rightTargetCat,
           'i',
           20
+        );
+        break;
+      case 5: // Reversed Target Practice
+        blockTrials = getBalancedDeck(
+          mapping.leftTargetCat === 'Arab Names' ? ARAB_NAMES : GEORGIAN_NAMES,
+          mapping.leftTargetCat,
+          'e',
+          mapping.rightTargetCat === 'Arab Names' ? ARAB_NAMES : GEORGIAN_NAMES,
+          mapping.rightTargetCat,
+          'i',
+          40
         );
         break;
       case 2: // Attribute Practice
@@ -254,8 +264,6 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
 
   const startTest = () => {
     setPhase('test');
-    startTimeRef.current = performance.now();
-    errorCountRef.current = 0;
   };
 
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
@@ -314,9 +322,6 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
         if (trialIndex + 1 < trials.length) {
           setTrialIndex(prev => prev + 1);
           setIsInterTrial(false);
-          startTimeRef.current = performance.now();
-          firstKeyPressTimeRef.current = null;
-          errorCountRef.current = 0;
         } else {
           setIsInterTrial(false);
           startNextBlock();
@@ -334,6 +339,16 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
 
+  // Precise stimulus onset synchronization
+  useEffect(() => {
+    if (phase === 'test' && !isInterTrial) {
+      startTimeRef.current = performance.now();
+      firstKeyPressTimeRef.current = null;
+      errorCountRef.current = 0;
+      setShowError(false);
+    }
+  }, [phase, isInterTrial, trialIndex, block]);
+
   const finishExperiment = () => {
     const data = resultsRef.current;
 
@@ -346,26 +361,26 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
     // Filter valid trials for D-score calculation (exclude too_slow > 10000ms)
     const validData = data.filter(r => !r.too_slow && r.total_time <= 10000);
 
-    // 1. Calculate D1 using all 4 critical blocks (3, 4, 6, 7)
-    const criticalBlocks = [3, 4, 6, 7];
-    const critData = validData.filter(r => criticalBlocks.includes(r.block));
+    // 1. Calculate D_practice using practice blocks (3 and 6)
+    const practiceBlocks = [3, 6];
+    const practiceData = validData.filter(r => practiceBlocks.includes(r.block));
 
-    const congruentCrit = critData.filter(r => r.congruency === 'Congruent');
-    const incongruentCrit = critData.filter(r => r.congruency === 'Incongruent');
+    const congruentPrac = practiceData.filter(r => r.congruency === 'Congruent');
+    const incongruentPrac = practiceData.filter(r => r.congruency === 'Incongruent');
 
-    const meanCongAll = congruentCrit.length > 0 ? congruentCrit.reduce((a, r) => a + r.total_time, 0) / congruentCrit.length : 0;
-    const meanIncongAll = incongruentCrit.length > 0 ? incongruentCrit.reduce((a, r) => a + r.total_time, 0) / incongruentCrit.length : 0;
+    const meanCongPrac = congruentPrac.length > 0 ? congruentPrac.reduce((a, r) => a + r.total_time, 0) / congruentPrac.length : 0;
+    const meanIncongPrac = incongruentPrac.length > 0 ? incongruentPrac.reduce((a, r) => a + r.total_time, 0) / incongruentPrac.length : 0;
 
-    const sdAll = (() => {
-      const times = critData.map(r => r.total_time);
+    const sdPrac = (() => {
+      const times = practiceData.map(r => r.total_time);
       if (times.length === 0) return 0;
       const m = times.reduce((a, b) => a + b, 0) / times.length;
       return Math.sqrt(times.reduce((a, b) => a + Math.pow(b - m, 2), 0) / times.length);
     })();
 
-    const d1 = sdAll !== 0 ? (meanIncongAll - meanCongAll) / sdAll : 0;
+    const dPractice = sdPrac !== 0 ? (meanIncongPrac - meanCongPrac) / sdPrac : 0;
 
-    // 2. Calculate D2 using only test blocks (4, 7)
+    // 2. Calculate D_test using test blocks (4 and 7)
     const testBlocks = [4, 7];
     const testData = validData.filter(r => testBlocks.includes(r.block));
 
@@ -382,10 +397,10 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
       return Math.sqrt(times.reduce((a, b) => a + Math.pow(b - m, 2), 0) / times.length);
     })();
 
-    const d2 = sdTest !== 0 ? (meanIncongTest - meanCongTest) / sdTest : 0;
+    const dTest = sdTest !== 0 ? (meanIncongTest - meanCongTest) / sdTest : 0;
 
     // 3. Final D Score
-    const finalDScore = (d1 + d2) / 2;
+    const finalDScore = (dPractice + dTest) / 2;
     setDScore(Number(finalDScore.toFixed(3)));
 
     // 4. Specific Reaction Time Averages (Blocks 3, 4, 6, 7)
@@ -396,7 +411,7 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
     const arabNegBlocks = condition === 'Group_A' ? [6, 7] : [3, 4];
 
     const getPairingMean = (blocks: number[], targetCat: string, attrCat: string) => {
-      const trials = critData.filter(r => blocks.includes(r.block) && (r.category === targetCat || r.category === attrCat));
+      const trials = validData.filter(r => blocks.includes(r.block) && (r.category === targetCat || r.category === attrCat));
       return trials.length > 0 ? trials.reduce((a, r) => a + r.total_time, 0) / trials.length : 0;
     };
 
@@ -412,8 +427,8 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
       condition,
       timestamp: new Date().toISOString(),
       d_score: Number(finalDScore.toFixed(3)),
-      d1: Number(d1.toFixed(3)),
-      d2: Number(d2.toFixed(3)),
+      d_practice: Number(dPractice.toFixed(3)),
+      d_test: Number(dTest.toFixed(3)),
       mean_rt_geo_positive: Math.round(mean_rt_geo_pos),
       mean_rt_geo_negative: Math.round(mean_rt_geo_neg),
       mean_rt_arab_positive: Math.round(mean_rt_arab_pos),
