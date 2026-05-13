@@ -294,11 +294,11 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
 
       let congruency: 'Congruent' | 'Incongruent' | 'Practice' = 'Practice';
       if (condition === 'Group_A') {
-        if ([3, 4].includes(block)) congruency = 'Congruent';
-        else if ([6, 7].includes(block)) congruency = 'Incongruent';
-      } else {
         if ([3, 4].includes(block)) congruency = 'Incongruent';
         else if ([6, 7].includes(block)) congruency = 'Congruent';
+      } else { // Group_B
+        if ([3, 4].includes(block)) congruency = 'Congruent';
+        else if ([6, 7].includes(block)) congruency = 'Incongruent';
       }
 
       resultsRef.current.push({
@@ -427,8 +427,8 @@ export const ArabGeorgianIAT: React.FC<ArabGeorgianIATProps> = ({
       condition,
       timestamp: new Date().toISOString(),
       d_score: Number(finalDScore.toFixed(3)),
-      d_practice: Number(dPractice.toFixed(3)),
-      d_test: Number(dTest.toFixed(3)),
+      d1: Number(dPractice.toFixed(3)),
+      d2: Number(dTest.toFixed(3)),
       mean_rt_geo_positive: Math.round(mean_rt_geo_pos),
       mean_rt_geo_negative: Math.round(mean_rt_geo_neg),
       mean_rt_arab_positive: Math.round(mean_rt_arab_pos),
