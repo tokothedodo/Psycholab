@@ -15,6 +15,7 @@ import {
   DigitSpanExperiment,
   AutonomousVehicleExperiment,
   ArabGeorgianIAT,
+  GayStraightIAT,
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
@@ -30,6 +31,7 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   'digit-span-task': DigitSpanExperiment,
   'moral-machine-ingroup': AutonomousVehicleExperiment,
   'iat-arab-georgian': ArabGeorgianIAT,
+  'iat-gay-straight': GayStraightIAT,
 };
 
 export function JoinExperimentPage() {
@@ -60,7 +62,7 @@ export function JoinExperimentPage() {
         return;
       }
       setRoom(roomData);
-      if (roomData.experiment === 'iat-arab-georgian') {
+      if (roomData.experiment === 'iat-arab-georgian' || roomData.experiment === 'iat-gay-straight') {
         setLanguage('ka');
         setShowLanguagePicker(false);
       }
@@ -178,7 +180,7 @@ export function JoinExperimentPage() {
   }
 
   const currentExperimentId = room!.experiment;
-  const isIAT = currentExperimentId === 'iat-arab-georgian';
+  const isIAT = currentExperimentId === 'iat-arab-georgian' || currentExperimentId === 'iat-gay-straight';
 
   if (completed && !isIAT) {
     return (

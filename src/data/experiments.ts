@@ -95,6 +95,19 @@ export const EXPERIMENTS: Experiment[] = [
     trials: 180,
     debriefKey: 'exp.iatArabGeorgian.debrief',
   },
+  {
+    id: 'iat-gay-straight',
+    name: 'Homosexual-Heterosexual Implicit Association Test',
+    nameKey: 'exp.iatGayStraight.name',
+    description: 'Measure unconscious associations between Homosexual and Heterosexual stimuli with positive and negative attributes.',
+    descriptionKey: 'exp.iatGayStraight.desc',
+    category: 'social-cognition',
+    citation: 'Greenwald et al., 1998',
+    year: 1998,
+    duration: 10,
+    trials: 180,
+    debriefKey: 'exp.iatGayStraight.debrief',
+  },
 ];
 
 export const CATEGORIES: { id: ExperimentCategory; nameKey: string; color: string }[] =

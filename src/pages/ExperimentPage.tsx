@@ -10,6 +10,7 @@ import {
   UltimatumExperiment,
   AutonomousVehicleExperiment,
   ArabGeorgianIAT,
+  GayStraightIAT,
 } from '../experiments';
 
 const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
@@ -25,6 +26,7 @@ const EXPERIMENT_COMPONENTS: Record<string, React.ComponentType<{
   'ultimatum-game': UltimatumExperiment,
   'moral-machine-ingroup': AutonomousVehicleExperiment,
   'iat-arab-georgian': ArabGeorgianIAT,
+  'iat-gay-straight': GayStraightIAT,
 };
 
 export function ExperimentPage() {
@@ -89,7 +91,7 @@ export function ExperimentPage() {
         </button>
       </header>
 
-      <main className={(experiment.id === 'iat-arab-georgian' || experiment.id === 'moral-machine-ingroup') ? "w-full min-h-screen" : "experiment-layout pt-20"}>
+      <main className={(experiment.id === 'iat-arab-georgian' || experiment.id === 'iat-gay-straight' || experiment.id === 'moral-machine-ingroup') ? "w-full min-h-screen" : "experiment-layout pt-20"}>
         <ExperimentComponent
           experiment={experiment}
           onComplete={submitResults}

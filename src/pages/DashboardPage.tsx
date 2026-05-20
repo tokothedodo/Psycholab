@@ -119,11 +119,15 @@ export function DashboardPage() {
       const results = await getResults(room.id);
       let csvContent = '';
 
-      if (room.experiment === 'iat-arab-georgian' || (results.length > 0 && (results[0] as any).trial_data)) {
+      if (room.experiment === 'iat-arab-georgian' || room.experiment === 'iat-gay-straight' || (results.length > 0 && (results[0] as any).trial_data)) {
         // Long Format for IAT
+        const isGayStraight = room.experiment === 'iat-gay-straight';
         const headers = [
-          'participant_id', 'timestamp', 'age', 'gender', 'condition', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
+          'participant_id', 'timestamp', 'age', 'gender', 'condition', 'explicit_pref',
+          isGayStraight ? 'warmth_straight' : 'warmth_georgian',
+          isGayStraight ? 'warmth_gay' : 'warmth_arab',
           'd_score', 'd1', 'd2', 'is_valid', 'is_high_error', 'too_fast_rate', 
+          ...(isGayStraight ? ['exp_group', 'd_experiment', 'd_control'] : []),
           'block', 'trial_idx', 'stimulus', 'category', 'latency', 'total_time', 'is_correct', 'error_count', 'too_fast', 'too_slow'
         ];
         
@@ -142,14 +146,19 @@ export function DashboardPage() {
               m.gender || '',
               r.condition || summary.condition || '',
               m.explicit_pref || '',
-              m.warmth_georgian || '',
-              m.warmth_arab || '',
-               r.d_score || summary.d_score || '',
-               r.d1 || summary.d1 || r.d_practice || summary.d_practice || '',
-               r.d2 || summary.d2 || r.d_test || summary.d_test || '',
+              m.warmth_georgian || m.warmth_straight || '',
+              m.warmth_arab || m.warmth_gay || '',
+              r.d_score || summary.d_score || '',
+              r.d1 || summary.d1 || r.d_practice || summary.d_practice || '',
+              r.d2 || summary.d2 || r.d_test || summary.d_test || '',
               (r.is_valid !== undefined ? r.is_valid : summary.is_valid) ?? '',
               (r.is_high_error !== undefined ? r.is_high_error : summary.is_high_error) ?? '',
               r.too_fast_rate || summary.too_fast_rate || '',
+              ...(isGayStraight ? [
+                summary.exp_group || '',
+                summary.d_experiment !== undefined ? summary.d_experiment : '',
+                summary.d_control !== undefined ? summary.d_control : ''
+              ] : []),
               t.block || '',
               t.trial_idx || '',
               `"${String(t.stimulus).replace(/"/g, '""')}"`,
@@ -194,9 +203,18 @@ export function DashboardPage() {
       const results = await getResults(room.id);
       if (results.length === 0) return;
 
+      const isGayStraight = room.experiment === 'iat-gay-straight';
       const headers = [
-        'participant_id', 'timestamp', 'age', 'gender', 'condition', 'explicit_pref', 'warmth_georgian', 'warmth_arab',
-        'd_score', 'd1', 'd2', 'rt_geo_pos', 'rt_geo_neg', 'rt_arab_pos', 'rt_arab_neg', 'error_rate', 'fast_response_rate', 'is_valid'
+        'participant_id', 'timestamp', 'age', 'gender', 'condition', 'explicit_pref',
+        isGayStraight ? 'warmth_straight' : 'warmth_georgian',
+        isGayStraight ? 'warmth_gay' : 'warmth_arab',
+        'd_score', 'd1', 'd2',
+        isGayStraight ? 'rt_straight_pos' : 'rt_geo_pos',
+        isGayStraight ? 'rt_straight_neg' : 'rt_geo_neg',
+        isGayStraight ? 'rt_gay_pos' : 'rt_arab_pos',
+        isGayStraight ? 'rt_gay_neg' : 'rt_arab_neg',
+        'error_rate', 'fast_response_rate', 'is_valid',
+        ...(isGayStraight ? ['exp_group', 'd_experiment', 'd_control'] : [])
       ];
       
       const rows = results.map((r: any) => {
@@ -213,6 +231,13 @@ export function DashboardPage() {
         const fastRate = r.too_fast_rate || (total > 0 ? (tooFast / total).toFixed(3) : 0);
         const errorRate = total > 0 ? ((errors / total) * 100).toFixed(1) : 0;
 
+        const warmth1 = m.warmth_georgian || m.warmth_straight || '';
+        const warmth2 = m.warmth_arab || m.warmth_gay || '';
+        const rt1 = summary.mean_rt_geo_positive || summary.mean_rt_straight_positive || '';
+        const rt2 = summary.mean_rt_geo_negative || summary.mean_rt_straight_negative || '';
+        const rt3 = summary.mean_rt_arab_positive || summary.mean_rt_gay_positive || '';
+        const rt4 = summary.mean_rt_arab_negative || summary.mean_rt_gay_negative || '';
+
         return [
           r.participant_id,
           r.timestamp,
@@ -220,18 +245,23 @@ export function DashboardPage() {
           m.gender || r.gender || '',
           r.condition || summary.condition || '',
           m.explicit_pref || '',
-          m.warmth_georgian || '',
-          m.warmth_arab || '',
+          warmth1,
+          warmth2,
           r.d_score || summary.d_score || '',
           r.d1 || summary.d1 || r.d_practice || summary.d_practice || '',
           r.d2 || summary.d2 || r.d_test || summary.d_test || '',
-          summary.mean_rt_geo_positive || '',
-          summary.mean_rt_geo_negative || '',
-          summary.mean_rt_arab_positive || '',
-          summary.mean_rt_arab_negative || '',
+          rt1,
+          rt2,
+          rt3,
+          rt4,
           `${errorRate}%`,
           fastRate,
-          (r.is_valid !== undefined ? r.is_valid : summary.is_valid) ?? ''
+          (r.is_valid !== undefined ? r.is_valid : summary.is_valid) ?? '',
+          ...(isGayStraight ? [
+            summary.exp_group || '',
+            summary.d_experiment !== undefined ? summary.d_experiment : '',
+            summary.d_control !== undefined ? summary.d_control : ''
+          ] : [])
         ].join(',');
       });
       
